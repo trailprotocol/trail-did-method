@@ -44,7 +44,7 @@ export function normalizeSlug(input: string): string {
 export function computeTrailHash(slug: string, publicKeyMultibase: string): string {
   const input = `${slug}:${publicKeyMultibase}`;
   const hash = createHash('sha256').update(input).digest('hex');
-  return hash.substring(0, 12);
+  return hash.substring(0, 16);
 }
 
 export function createSelfDid(publicKeyMultibase: string): string {
@@ -108,7 +108,7 @@ export function parseTrailDid(did: string): ParsedDid {
 
   // For org/agent, extract slug and hash
   const lastHyphen = subject.lastIndexOf('-');
-  if (lastHyphen === -1 || subject.length - lastHyphen - 1 !== 12) {
+  if (lastHyphen === -1 || subject.length - lastHyphen - 1 !== 16) {
     // Legacy format without hash — still parseable but flagged
     return { mode, subject, slug: subject };
   }
@@ -116,7 +116,7 @@ export function parseTrailDid(did: string): ParsedDid {
   const slug = subject.substring(0, lastHyphen);
   const hash = subject.substring(lastHyphen + 1);
 
-  if (!/^[0-9a-f]{12}$/.test(hash)) {
+  if (!/^[0-9a-f]{16}$/.test(hash)) {
     return { mode, subject, slug: subject };
   }
 

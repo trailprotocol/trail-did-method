@@ -78,8 +78,8 @@ console.log(verification.valid); // true
 ## DID Examples
 
 ```
-did:trail:org:acme-corp-a7f3b2c1e9d0
-did:trail:agent:sales-assistant-e4d8f1a9b3c5
+did:trail:org:acme-corp-a7f3b2c1e9d04f5a
+did:trail:agent:sales-assistant-e4d8f1a9b3c57d2e
 did:trail:self:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
 ```
 

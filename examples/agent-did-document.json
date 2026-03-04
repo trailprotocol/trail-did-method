@@ -3,17 +3,17 @@
     "https://www.w3.org/ns/did/v1",
     "https://trailprotocol.org/ns/did/v1"
   ],
-  "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c5",
-  "controller": "did:trail:org:example-de-a7f3b2c1e9d0",
+  "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e",
+  "controller": "did:trail:org:example-de-a7f3b2c1e9d04f5a",
   "trail:trailMode": "agent",
   "trail:aiSystemType": "agent",
   "trail:euAiActRiskClass": "minimal",
-  "trail:parentOrganization": "did:trail:org:example-de-a7f3b2c1e9d0",
+  "trail:parentOrganization": "did:trail:org:example-de-a7f3b2c1e9d04f5a",
   "verificationMethod": [
     {
-      "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c5#key-1",
+      "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e#key-1",
       "type": "JsonWebKey2020",
-      "controller": "did:trail:agent:support-bot-v2-e4d8f1a9b3c5",
+      "controller": "did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e",
       "publicKeyJwk": {
         "kty": "OKP",
         "crv": "Ed25519",
@@ -21,13 +21,13 @@
       }
     }
   ],
-  "authentication": ["did:trail:agent:support-bot-v2-e4d8f1a9b3c5#key-1"],
-  "assertionMethod": ["did:trail:agent:support-bot-v2-e4d8f1a9b3c5#key-1"],
+  "authentication": ["did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e#key-1"],
+  "assertionMethod": ["did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e#key-1"],
   "service": [
     {
-      "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c5#trail-registry",
+      "id": "did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e#trail-registry",
       "type": "TrailRegistryService",
-      "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:agent:support-bot-v2-e4d8f1a9b3c5"
+      "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:agent:support-bot-v2-e4d8f1a9b3c57d2e"
     }
   ]
 }

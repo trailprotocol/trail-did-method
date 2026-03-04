@@ -122,12 +122,12 @@ describe('DID Construction', () => {
     const did = createOrgDid('ACME Corporation GmbH', keys.publicKeyMultibase);
     // normalizeSlug removes "GmbH" and "Corporation" as legal suffixes → "acme"
     assert.ok(did.startsWith('did:trail:org:acme-'));
-    // Hash suffix is 12 hex chars
+    // Hash suffix is 16 hex chars (64-bit, collision-safe to ~4.3B DIDs)
     const parts = did.split(':');
     const subject = parts[3];
     const hashPart = subject.split('-').pop()!;
-    assert.strictEqual(hashPart.length, 12);
-    assert.ok(/^[0-9a-f]{12}$/.test(hashPart));
+    assert.strictEqual(hashPart.length, 16);
+    assert.ok(/^[0-9a-f]{16}$/.test(hashPart));
   });
 
   it('creates agent DID with hash suffix', () => {
@@ -158,7 +158,7 @@ describe('DID Construction', () => {
     assert.strictEqual(parsed.mode, 'org');
     assert.ok(parsed.slug);
     assert.ok(parsed.hash);
-    assert.strictEqual(parsed.hash!.length, 12);
+    assert.strictEqual(parsed.hash!.length, 16);
   });
 
   it('rejects invalid DID format', () => {
@@ -194,7 +194,7 @@ describe('DID Document', () => {
   it('creates agent DID document with parent reference', () => {
     const keys = generateKeyPair();
     const did = createAgentDid('Bot', keys.publicKeyMultibase);
-    const parentDid = 'did:trail:org:parent-corp-abcd1234e5f6';
+    const parentDid = 'did:trail:org:parent-corp-abcd1234e5f6a7b8';
     const doc = createDidDocument(did, keys, {
       mode: 'agent',
       parentOrganization: parentDid,

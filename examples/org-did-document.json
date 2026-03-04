@@ -3,13 +3,13 @@
     "https://www.w3.org/ns/did/v1",
     "https://trailprotocol.org/ns/did/v1"
   ],
-  "id": "did:trail:org:example-de-a7f3b2c1e9d0",
+  "id": "did:trail:org:example-de-a7f3b2c1e9d04f5a",
   "trail:trailMode": "org",
   "verificationMethod": [
     {
-      "id": "did:trail:org:example-de-a7f3b2c1e9d0#key-1",
+      "id": "did:trail:org:example-de-a7f3b2c1e9d04f5a#key-1",
       "type": "JsonWebKey2020",
-      "controller": "did:trail:org:example-de-a7f3b2c1e9d0",
+      "controller": "did:trail:org:example-de-a7f3b2c1e9d04f5a",
       "publicKeyJwk": {
         "kty": "OKP",
         "crv": "Ed25519",
@@ -17,16 +17,16 @@
       }
     }
   ],
-  "authentication": ["did:trail:org:example-de-a7f3b2c1e9d0#key-1"],
-  "assertionMethod": ["did:trail:org:example-de-a7f3b2c1e9d0#key-1"],
+  "authentication": ["did:trail:org:example-de-a7f3b2c1e9d04f5a#key-1"],
+  "assertionMethod": ["did:trail:org:example-de-a7f3b2c1e9d04f5a#key-1"],
   "service": [
     {
-      "id": "did:trail:org:example-de-a7f3b2c1e9d0#trail-registry",
+      "id": "did:trail:org:example-de-a7f3b2c1e9d04f5a#trail-registry",
       "type": "TrailRegistryService",
-      "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:org:example-de-a7f3b2c1e9d0"
+      "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:org:example-de-a7f3b2c1e9d04f5a"
     },
     {
-      "id": "did:trail:org:example-de-a7f3b2c1e9d0#ai-policy",
+      "id": "did:trail:org:example-de-a7f3b2c1e9d04f5a#ai-policy",
       "type": "TrailAIPolicyService",
       "serviceEndpoint": "https://example-gmbh.de/.well-known/trail-ai-policy.json"
     }
