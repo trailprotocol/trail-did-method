@@ -1,0 +1,16 @@
+{
+  "name": "trail-examples-js",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TRAIL Protocol usage examples for Node.js",
+  "scripts": {
+    "did-resolution": "node did-resolution.js",
+    "vc-verification": "node vc-verification.js"
+  },
+  "dependencies": {
+    "@trailprotocol/core": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
