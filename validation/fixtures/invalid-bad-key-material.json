@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://trailprotocol.org/ns/did/v1"
+  ],
+  "id": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+  "controller": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+  "verificationMethod": [
+    {
+      "id": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1",
+      "type": "JsonWebKey2020",
+      "controller": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+      "publicKeyJwk": {
+        "kty": "RSA",
+        "crv": "Ed25519",
+        "x": ""
+      }
+    }
+  ],
+  "authentication": [
+    "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://trailprotocol.org/ns/did/v1"
+  ],
+  "id": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+  "controller": [
+    "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+    "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#recovery-key-1"
+  ],
+  "verificationMethod": [
+    {
+      "id": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1",
+      "type": "JsonWebKey2020",
+      "controller": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+      "publicKeyJwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      }
+    }
+  ],
+  "authentication": [
+    "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1"
+  ],
+  "assertionMethod": [
+    "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1"
+  ],
+  "capabilityDelegation": [
+    "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1"
+  ],
+  "service": [
+    {
+      "id": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#trail-registry",
+      "type": "TrailRegistryService",
+      "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5"
+    }
+  ],
+  "trail:parentOrganization": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+  "trail:aiSystemType": "agent",
+  "trail:trailTrustTier": 1
+}
