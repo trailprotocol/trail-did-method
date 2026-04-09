@@ -213,6 +213,16 @@ We welcome contributions, questions, and challenges. If you find a flaw in the s
 - **Join W3C CCG** - discuss `did:trail` on the mailing list: [public-credentials@w3.org](mailto:public-credentials@w3.org)
 - **Contact the author:** christian.hommrich@trailprotocol.org
 
+### Open RFCs — looking for expert review
+
+Three design questions are currently open and would benefit most from external critique:
+
+- **[#1 Federation Model Architecture Review](https://github.com/trailprotocol/trail-did-method/issues/1)** — How independent trust registries federate without a single root of trust
+- **[#2 Trust Score Algorithm](https://github.com/trailprotocol/trail-did-method/issues/2)** — Gameability, decay function, EU AI Act explainability
+- **[#3 Key Rotation Security Audit](https://github.com/trailprotocol/trail-did-method/issues/3)** — Threat-model review of rotation semantics
+
+If you have expertise in DID/SSI, cryptographic protocols, or trust systems — even a single comment moves these forward. Harsh critique is the most useful kind.
+
 This project follows our own [Code of Conduct](CODE_OF_CONDUCT.md) and [Ethical Principles](ETHICS.md). See [GOVERNANCE.md](GOVERNANCE.md) for how decisions are made.
 
 ---
