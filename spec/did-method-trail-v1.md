@@ -1,6 +1,6 @@
 # did:trail Method Specification
 
-**Version:** 1.1.0-draft
+**Version:** 1.2.0-draft
 **Status:** Draft
 **Authors:** Christian Hommrich (TRAIL Protocol Initiative)
 **Contact:** christian.hommrich@gmail.com
@@ -53,6 +53,7 @@ This document is a **Draft** specification submitted for registration in the [W3
    - 7.2 [Trust Tiers](#72-trust-tiers)
    - 7.3 [Trust Score](#73-trust-score)
    - 7.4 [EU AI Act Alignment](#74-eu-ai-act-alignment)
+   - 7.5 [Platform Identity Binding (Managed Agent Support)](#75-platform-identity-binding-managed-agent-support)
 8. [Security Considerations](#8-security-considerations)
    - 8.1 [Key Security](#81-key-security)
    - 8.2 [Crypto Agility](#82-crypto-agility)
@@ -234,13 +235,19 @@ did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a
 did:trail:org:deutschebank-ai-desk-e2f4a6b8
 ```
 
-#### `agent` — AI Agent Identity
-Identifies a specific AI agent or AI-powered service instance operated by an organization. MUST be associated with a parent `org` DID.
+#### `agent` — AI Agent Deployment Identity
+Identifies an AI agent **deployment** operated by an organization. A deployment is a named, versioned configuration of an AI system — distinct from any individual running instance. MUST be associated with a parent `org` DID via the `trail:parentOrganization` property.
 
 ```
 did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3
 did:trail:agent:db-contract-analysis-prod-001-c8d9e0f1a2b4
 ```
+
+**Deployment vs. Instance:** The `agent` DID identifies the *deployment configuration*, not a running process. This distinction is critical for platform-hosted agents (e.g., Anthropic Managed Agents, Azure AI, Google Vertex AI) that are dynamically provisioned per session. A single `did:trail:agent` DID covers all instances spawned from one deployment configuration, across all sessions, for the active lifetime of that deployment. This maps to the "Deployment vs. Pod" distinction in container orchestration.
+
+**Registration authority:** The `did:trail:agent` DID is created and registered by the **deploying organization** (which MUST hold a `did:trail:org` DID), not by the agent itself. Agents operating on third-party platforms (managed agents) cannot directly interact with the TRAIL Registry. The deployer acts as the accountable principal for all agent instances.
+
+**Lifecycle:** The `did:trail:agent` DID remains active as long as the deployment is active. Deactivation of the deployment DID (§6.4) implicitly revokes all active sessions of that deployment. Individual session termination does not require registry interaction.
 
 #### `self` — Local Verification Mode
 DIDs are cryptographically self-contained and verifiable without external registry lookup. Represents the foundational trust tier of the TRAIL ecosystem, providing cryptographic identity verification without organizational attestation.
@@ -1018,6 +1025,99 @@ TRAIL provides technical infrastructure that organizations can use to support th
 | **Art. 49** (Registration) | Providers and deployers must register high-risk AI systems in the EU database | TRAIL Trust Registry can serve as a complementary technical registry alongside the official EU database | TRAIL is NOT the official EU AI database. Registration in TRAIL does not satisfy Art. 49. Organizations MUST register in the official EU database independently. |
 | **Art. 52** (Transparency for Certain AI Systems) | Persons interacting with AI must be informed they are interacting with AI | TRAIL DID can be presented in real-time to verify AI system identity; TRAIL Badge provides visual indicator | TRAIL provides the verification mechanism. Organizations must ensure actual notification is delivered to affected persons in a clear and timely manner. Implementation of UI/UX notification is the organization's responsibility. |
 
+### 7.5 Platform Identity Binding (Managed Agent Support)
+
+Platform-hosted AI agents (e.g., Anthropic Managed Agents, Azure AI, Google Vertex AI) are dynamically provisioned per session and cannot directly interact with the TRAIL Registry. This section defines the `PlatformIdentityBinding` Verifiable Credential type, which enables deploying organizations to establish a cryptographically verifiable link between a platform's internal deployment identifier and a registered `did:trail:agent` DID — without requiring platform cooperation.
+
+#### 7.5.1 Motivation
+
+When an enterprise deploys an AI agent on a third-party platform, two identity namespaces exist:
+
+1. **Platform namespace** — An internal deployment identifier assigned by the platform operator (e.g., `managed-agent-deployment-abc`). This identifier is platform-specific and not externally resolvable without platform cooperation.
+2. **TRAIL namespace** — The `did:trail:agent` DID registered by the deploying organization, externally resolvable and cryptographically verifiable.
+
+An external auditor (e.g., a BaFin compliance officer verifying EU AI Act Art. 12 conformance) needs to establish that a specific platform deployment corresponds to the organization's registered identity — without contacting the platform operator. `PlatformIdentityBinding` provides this link.
+
+#### 7.5.2 PlatformIdentityBinding Credential
+
+The `PlatformIdentityBinding` credential is issued by the **deploying organization** (not by the platform). The deployer's `did:trail:org` DID MUST be the credential issuer.
+
+**Normative definition:**
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://trailprotocol.org/ns/credentials/v1"
+  ],
+  "type": ["VerifiableCredential", "PlatformIdentityBinding"],
+  "issuer": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+  "validFrom": "2026-04-01T00:00:00Z",
+  "validUntil": "2027-04-01T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:trail:agent:acme-sales-agent-v2-de-3f8c",
+    "platformIdentity": {
+      "platform": "anthropic",
+      "deploymentId": "managed-agent-deployment-abc",
+      "attestedBy": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+    }
+  },
+  "credentialStatus": {
+    "id": "https://registry.trailprotocol.org/1.0/status/2026-04#17",
+    "type": "StatusList2021Entry",
+    "statusPurpose": "revocation",
+    "statusListIndex": "17",
+    "statusListCredential": "https://registry.trailprotocol.org/1.0/status/2026-04"
+  }
+}
+```
+
+**Field definitions:**
+
+| Field | Requirement | Description |
+|-------|-------------|-------------|
+| `issuer` | MUST | The `did:trail:org` DID of the deploying organization. MUST match `credentialSubject.platformIdentity.attestedBy`. |
+| `credentialSubject.id` | MUST | The `did:trail:agent` DID of the deployment. |
+| `platformIdentity.platform` | MUST | Lowercase identifier of the platform operator. Registered values: `anthropic`, `azure`, `google`, `aws`, `other`. |
+| `platformIdentity.deploymentId` | MUST | The platform's internal deployment identifier, as assigned by the platform operator. |
+| `platformIdentity.attestedBy` | MUST | The `did:trail:org` DID of the attesting organization. MUST equal `issuer`. |
+| `validFrom` / `validUntil` | MUST | Validity period of the binding. SHOULD not exceed 12 months. |
+| `credentialStatus` | MUST | Revocation status entry conforming to W3C VC Status List 2021. |
+
+#### 7.5.3 Verification Requirements
+
+A verifier receiving a `PlatformIdentityBinding` credential MUST:
+
+1. Resolve `credentialSubject.id` via the TRAIL Registry and verify the `did:trail:agent` DID is active.
+2. Resolve `issuer` via the TRAIL Registry and verify the `did:trail:org` DID is active and at Tier 1 or above.
+3. Verify that `issuer` equals `credentialSubject.platformIdentity.attestedBy`.
+4. Verify the credential signature against the issuer's public key.
+5. Verify the credential has not been revoked via `credentialStatus`.
+6. Verify `validFrom` and `validUntil` bounds against the current timestamp.
+
+A verifier MUST NOT require platform operator cooperation to complete verification. The binding is self-contained and externally auditable.
+
+#### 7.5.4 Accountability Model
+
+The `PlatformIdentityBinding` design preserves the Tier 1 accountability principle: the deploying organization is the accountable principal, not the platform operator. The deployer:
+
+- Creates and maintains the `did:trail:agent` DID
+- Issues and signs the `PlatformIdentityBinding` credential
+- Is responsible for revoking the credential if the deployment is decommissioned or compromised
+
+This design is platform-agnostic: the same pattern applies to Anthropic Managed Agents, Azure AI services, Google Vertex AI deployments, and future platforms without requiring platform-specific extensions to this specification.
+
+#### 7.5.5 EU AI Act Art. 12 Audit Trail
+
+For high-risk AI deployments subject to EU AI Act Article 12 (Record-Keeping), the `PlatformIdentityBinding` credential enables a cross-jurisdictional audit trail that:
+
+- Does not require platform cooperation to access
+- Is cryptographically bound to the deploying organization's verified identity
+- Is accessible to EU regulatory bodies without triggering CLOUD Act concerns
+- Can be independently verified by any party holding the TRAIL Registry's public key
+
+Organizations claiming EU AI Act Art. 12 compliance via TRAIL SHOULD maintain `PlatformIdentityBinding` credentials for all managed agent deployments and ensure revocation occurs within the timeframes specified in §8.6.
+
 ---
 
 ## 8. Security Considerations
@@ -1654,6 +1754,18 @@ Note: The JCS output differs from the input in key ordering (`@context` sorts be
 ---
 
 ## 15. Changelog
+
+### v1.2.0-draft (2026-04-10)
+
+This release adds normative support for platform-hosted AI agent deployments (Managed Agents). It addresses the structural gap identified in v1.1.0-draft: the assumption that an agent has a persistent identity and can directly interact with the TRAIL Registry does not hold for agents dynamically provisioned per session by third-party platforms.
+
+| # | Change | Sections Affected |
+|---|--------|-------------------|
+| 1 | **Extended `agent` mode — Deployment vs. Instance distinction** — The `agent` identifier mode now explicitly represents a *deployment* (configuration), not a running instance. Added normative text on registration authority (deployer org), lifecycle semantics, and platform-hosted agent support. | §4.2 |
+| 2 | **Added `PlatformIdentityBinding` VC type** — New credential type enabling deploying organizations to cryptographically link a platform's internal deployment ID to a `did:trail:agent` DID. Signed by deployer, not platform. No platform cooperation required for audit. Full normative definition including field requirements, verification algorithm, accountability model, and EU AI Act Art. 12 audit trail guidance. | §7.5 (new) |
+
+Community discussion: [GitHub Discussion #10](https://github.com/trailprotocol/trail-did-method/discussions/10)
+Tracking issue: [Issue #9](https://github.com/trailprotocol/trail-did-method/issues/9)
 
 ### v1.1.0-draft (2026-03-04)
 
