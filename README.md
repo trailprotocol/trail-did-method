@@ -8,7 +8,7 @@
 [![W3C CCG Member](https://img.shields.io/badge/W3C%20CCG-Member-blue)](https://www.w3.org/community/credentials/)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![License: MIT](https://img.shields.io/badge/Code-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Status: Draft](https://img.shields.io/badge/Spec-v1.1.0--draft-orange)](https://github.com/trailprotocol/trail-did-method/issues)
+[![Status: Draft](https://img.shields.io/badge/Spec-v1.2.0--draft-orange)](https://github.com/trailprotocol/trail-did-method/issues)
 
 ---
 
@@ -111,7 +111,7 @@ trail-did-method/
 ├── ETHICS.md                    <- Ethical principles guiding protocol design
 ├── GOVERNANCE.md                <- Decision-making, roles, dispute resolution
 ├── spec/
-│   └── did-method-trail-v1.md  <- Complete DID Method Specification (v1.1.0-draft)
+│   └── did-method-trail-v1.md  <- Complete DID Method Specification (v1.2.0-draft)
 ├── packages/
 │   └── trail-core/            <- @trailprotocol/core — reference implementation
 │       ├── src/               <- TypeScript source (zero runtime dependencies)
@@ -137,7 +137,7 @@ The full TRAIL Protocol Technical Whitepaper v1.0 is available at [trailprotocol
 
 ### DID Method Specification
 
-The full `did:trail` DID Method Specification v1.1.0-draft is available in [`spec/did-method-trail-v1.md`](spec/did-method-trail-v1.md).
+The full `did:trail` DID Method Specification v1.2.0-draft is available in [`spec/did-method-trail-v1.md`](spec/did-method-trail-v1.md).
 
 Key sections:
 - [DID Method Syntax](spec/did-method-trail-v1.md#4-did-method-syntax) — including content-addressable hash suffixes
@@ -190,7 +190,7 @@ The `methods/trail.json` file in this repository is submitted for inclusion in t
 
 ---
 
-## Managed Agent Support (v1.2 — in progress)
+## Managed Agent Support (v1.2 — spec draft complete)
 
 Platform-hosted AI agents (Anthropic Managed Agents, Azure AI, Google Vertex) challenge a core assumption of the current spec: that an agent has a stable, persistent identity and can directly create its own DID.
 
@@ -244,7 +244,7 @@ Full spec proposal: see [Issue #9](https://github.com/trailprotocol/trail-did-me
 - [x] v1.0 — W3C DID Registry submission (PR #669)
 - [x] v1.1 — Reference implementation (`@trailprotocol/core`) with CLI
 - [x] v1.1 — Specification v1.1.0-draft (9 critical improvements)
-- [ ] v1.2 — Managed Agent Support (`did:trail:agent:*` + `PlatformIdentityBinding` VC)
+- [x] v1.2 — Managed Agent Support (`did:trail:agent:*` + `PlatformIdentityBinding` VC) — spec draft complete, see §7.5
 - [ ] v1.2 — TRAIL Registry alpha (Early Adopter Program)
 - [ ] v1.2 — EU AI Act Art. 12 compliant audit log API
 - [ ] v2.0 — Production registry + independent security audit
@@ -294,3 +294,4 @@ TRAIL Protocol Initiative
 
 *First committed: 2026-03-01 — establishing Prior Art for the `did:trail` namespace and TRAIL Protocol concept.*
 *Spec v1.1.0-draft: 2026-03-04 — addressing 9 critical improvements based on expert review.*
+*Spec v1.2.0-draft: 2026-04-10 — Managed Agent Identity Binding (PlatformIdentityBinding VC, §7.5); deployment vs. instance distinction normative.*
