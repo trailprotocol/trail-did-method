@@ -234,7 +234,7 @@ This design means **no platform cooperation is required** for external audit. A 
 
 The same pattern works across all platforms without platform-specific code in the spec.
 
-Full spec proposal: see [Issue #6](https://github.com/trailprotocol/trail-did-method/issues/6) (coming soon).
+Full spec proposal: see [Issue #9](https://github.com/trailprotocol/trail-did-method/issues/9) — community input welcome.
 
 ---
 
