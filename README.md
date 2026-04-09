@@ -190,13 +190,63 @@ The `methods/trail.json` file in this repository is submitted for inclusion in t
 
 ---
 
+## Managed Agent Support (v1.2 — in progress)
+
+Platform-hosted AI agents (Anthropic Managed Agents, Azure AI, Google Vertex) challenge a core assumption of the current spec: that an agent has a stable, persistent identity and can directly create its own DID.
+
+In practice, platform agents are **dynamically provisioned per session** — no persistent running instance, no direct registry access. The persistent entity is the *deployment* (a configuration), not the running instance.
+
+did:trail v1.2 introduces two spec extensions to address this:
+
+### Agent Deployment Identity (`did:trail:agent:*`)
+
+A new identifier mode for agent deployments registered by the deploying organization:
+
+```
+did:trail:agent:{deployment-suffix}
+```
+
+- Registered by the **deployer organization** (which holds a `did:trail:org:*` DID)
+- Represents one deployment configuration across all its instances
+- Lifecycle tied to the active deployment, not individual sessions
+- Linked to the deployer's org DID via `trail:parentOrganization`
+
+### Platform Identity Binding VC
+
+A new VC type (`PlatformIdentityBinding`) that links a platform's internal deployment ID to a `did:trail:agent` DID — **signed by the deployer, not the platform**.
+
+```json
+{
+  "type": ["VerifiableCredential", "PlatformIdentityBinding"],
+  "issuer": "did:trail:org:acme-corp-eu-a7f3b2c1e9d0",
+  "credentialSubject": {
+    "id": "did:trail:agent:acme-sales-agent-v2-de-3f8c",
+    "platformIdentity": {
+      "platform": "anthropic",
+      "deploymentId": "managed-agent-deployment-abc",
+      "attestedBy": "did:trail:org:acme-corp-eu-a7f3b2c1e9d0"
+    }
+  }
+}
+```
+
+This design means **no platform cooperation is required** for external audit. A BaFin auditor verifying an EU AI Act Art. 12 audit trail does not need to contact Anthropic, Azure, or Google. The deploying organization attests the binding from its own accountability — consistent with the Tier 1 KYB model already in the spec.
+
+The same pattern works across all platforms without platform-specific code in the spec.
+
+Full spec proposal: see [Issue #6](https://github.com/trailprotocol/trail-did-method/issues/6) (coming soon).
+
+---
+
 ## Roadmap
 
 - [x] v1.0 — Specification draft
 - [x] v1.0 — W3C DID Registry submission (PR #669)
 - [x] v1.1 — Reference implementation (`@trailprotocol/core`) with CLI
 - [x] v1.1 — Specification v1.1.0-draft (9 critical improvements)
+- [ ] v1.2 — Managed Agent Support (`did:trail:agent:*` + `PlatformIdentityBinding` VC)
 - [ ] v1.2 — TRAIL Registry alpha (Early Adopter Program)
+- [ ] v1.2 — EU AI Act Art. 12 compliant audit log API
 - [ ] v2.0 — Production registry + independent security audit
 - [ ] v2.1 — Universal Resolver driver
 - [ ] v3.0 — EUDIW integration + B2C extension
