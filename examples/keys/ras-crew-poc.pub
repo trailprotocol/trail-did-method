@@ -1,0 +1,12 @@
+{
+  "id": "ras-crew-poc",
+  "type": "Ed25519VerificationKey2020",
+  "note": "POC-KEY-NOT-FOR-PRODUCTION - RAS Crew did:trail PoC registry signing key",
+  "created": "2026-04-14",
+  "publicKeyMultibase": "z6MktDCM9689mJcCrFHTqQjrLXiPZnbxvu27YTN57QBBbLB1",
+  "publicKeyJwk": {
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+  }
+}

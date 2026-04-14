@@ -1,0 +1,304 @@
+{
+  "@context": "https://trailprotocol.org/ns/registry/v1",
+  "name": "RAS Crew PoC Registry",
+  "description": "First production reference for did:trail - the Rocking.AI.Sales AI Sales Crew (1 org + 5 agents).",
+  "version": "0.1.0",
+  "created": "2026-04-14T11:47:04.750Z",
+  "notice": "POC-KEY-NOT-FOR-PRODUCTION. All identifiers in this registry are signed with a single ed25519 test key. Do not trust for real transactions.",
+  "signingKey": {
+    "id": "ras-crew-poc",
+    "type": "Ed25519VerificationKey2020",
+    "publicKeyMultibase": "z6MktDCM9689mJcCrFHTqQjrLXiPZnbxvu27YTN57QBBbLB1",
+    "publicKeyJwk": {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+    }
+  },
+  "didDocuments": [
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "org",
+      "trail:displayName": "Rocking.AI.Sales",
+      "trail:legalName": "Rocking.AI.Sales (pre-incorporation, Christian Hommrich)",
+      "trail:jurisdiction": "DE",
+      "verificationMethod": [
+        {
+          "id": "did:trail:org:rocking-ai-sales-a1772c746cf0287a#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:org:rocking-ai-sales-a1772c746cf0287a#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:org:rocking-ai-sales-a1772c746cf0287a#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:org:rocking-ai-sales-a1772c746cf0287a#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/"
+        }
+      ]
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "agent",
+      "trail:aiSystemType": "agent",
+      "trail:euAiActRiskClass": "minimal",
+      "trail:parentOrganization": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:displayName": "Recherche-Agent",
+      "trail:description": "Rocking.AI.Sales Crew - Research / ICP scoring",
+      "trail:humanOversight": {
+        "name": "Christian Hommrich",
+        "email": "christian.hommrich@rockingaisales.de",
+        "role": "Founder / Operator"
+      },
+      "verificationMethod": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-recherche-01-f07db931d45bb82b#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/recherche-01/"
+        }
+      ],
+      "_meta": {
+        "slug": "rocking-ai-sales-recherche-01",
+        "displayName": "Recherche-Agent"
+      }
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "agent",
+      "trail:aiSystemType": "agent",
+      "trail:euAiActRiskClass": "minimal",
+      "trail:parentOrganization": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:displayName": "Erstkontakt-Agent",
+      "trail:description": "Rocking.AI.Sales Crew - Outreach drafting",
+      "trail:humanOversight": {
+        "name": "Christian Hommrich",
+        "email": "christian.hommrich@rockingaisales.de",
+        "role": "Founder / Operator"
+      },
+      "verificationMethod": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-erstkontakt-01-1858b310e081441b#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/erstkontakt-01/"
+        }
+      ],
+      "_meta": {
+        "slug": "rocking-ai-sales-erstkontakt-01",
+        "displayName": "Erstkontakt-Agent"
+      }
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "agent",
+      "trail:aiSystemType": "agent",
+      "trail:euAiActRiskClass": "minimal",
+      "trail:parentOrganization": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:displayName": "Qualifizierungs-Agent",
+      "trail:description": "Rocking.AI.Sales Crew - PRISM qualification",
+      "trail:humanOversight": {
+        "name": "Christian Hommrich",
+        "email": "christian.hommrich@rockingaisales.de",
+        "role": "Founder / Operator"
+      },
+      "verificationMethod": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-qualifizierung-01-d9af73ea505b82ea#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/qualifizierung-01/"
+        }
+      ],
+      "_meta": {
+        "slug": "rocking-ai-sales-qualifizierung-01",
+        "displayName": "Qualifizierungs-Agent"
+      }
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "agent",
+      "trail:aiSystemType": "agent",
+      "trail:euAiActRiskClass": "minimal",
+      "trail:parentOrganization": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:displayName": "Vorbereitungs-Agent",
+      "trail:description": "Rocking.AI.Sales Crew - Meeting prep",
+      "trail:humanOversight": {
+        "name": "Christian Hommrich",
+        "email": "christian.hommrich@rockingaisales.de",
+        "role": "Founder / Operator"
+      },
+      "verificationMethod": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-vorbereitung-01-2efdf3ee9df8b85b#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/vorbereitung-01/"
+        }
+      ],
+      "_meta": {
+        "slug": "rocking-ai-sales-vorbereitung-01",
+        "displayName": "Vorbereitungs-Agent"
+      }
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://trailprotocol.org/ns/did/v1"
+      ],
+      "id": "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964",
+      "controller": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:trailMode": "agent",
+      "trail:aiSystemType": "agent",
+      "trail:euAiActRiskClass": "minimal",
+      "trail:parentOrganization": "did:trail:org:rocking-ai-sales-a1772c746cf0287a",
+      "trail:displayName": "Nachfass-Agent",
+      "trail:description": "Rocking.AI.Sales Crew - Follow-up / action items",
+      "trail:humanOversight": {
+        "name": "Christian Hommrich",
+        "email": "christian.hommrich@rockingaisales.de",
+        "role": "Founder / Operator"
+      },
+      "verificationMethod": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "zGlOEMcSD21BwLZwSVsW47xipSs3UMOoAMhZCeLUBOA"
+          }
+        }
+      ],
+      "authentication": [
+        "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964#key-1"
+      ],
+      "assertionMethod": [
+        "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964#key-1"
+      ],
+      "service": [
+        {
+          "id": "did:trail:agent:rocking-ai-sales-nachfass-01-80bae7205b9ec964#trail-registry",
+          "type": "TrailRegistryService",
+          "serviceEndpoint": "https://trailprotocol.org/verify/ras-crew/nachfass-01/"
+        }
+      ],
+      "_meta": {
+        "slug": "rocking-ai-sales-nachfass-01",
+        "displayName": "Nachfass-Agent"
+      }
+    }
+  ],
+  "proof": {
+    "type": "Ed25519Signature2020",
+    "created": "2026-04-14T11:47:04.758Z",
+    "verificationMethod": "ras-crew-poc",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "zTgbvM2SG8qNRgV3zmfmq5fdWGsdx1o56oMV4feew35ypB96dhFXQkWuvsqESLNDvrsQ3hrQDLjYfjQQm4HqTbBq"
+  }
+}
