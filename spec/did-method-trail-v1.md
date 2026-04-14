@@ -32,6 +32,7 @@ This document is a **Draft** specification submitted for registration in the [W3
    - 3.1 [Method Name](#31-method-name)
    - 3.2 [Target System](#32-target-system)
    - 3.3 [Registry Federation](#33-registry-federation)
+   - 3.4 [Trust Anchor Model](#34-trust-anchor-model)
 4. [DID Method Syntax](#4-did-method-syntax)
    - 4.1 [Method-Specific Identifier](#41-method-specific-identifier)
    - 4.2 [Identifier Modes](#42-identifier-modes)
@@ -61,11 +62,12 @@ This document is a **Draft** specification submitted for registration in the [W3
    - 8.4 [Replay Attack Prevention](#84-replay-attack-prevention)
    - 8.5 [Man-in-the-Middle Attacks](#85-man-in-the-middle-attacks)
    - 8.6 [Revocation Timeliness](#86-revocation-timeliness)
-   - 8.7 [Key Recovery](#87-key-recovery)
-   - 8.8 [Key Rotation Protocol](#88-key-rotation-protocol)
-   - 8.9 [Specification Versioning](#89-specification-versioning)
-   - 8.10 [Revocation Roadmap](#810-revocation-roadmap)
-   - 8.11 [Protocol Roadmap](#811-protocol-roadmap)
+   - 8.7 [Revocation Propagation Protocol](#87-revocation-propagation-protocol)
+   - 8.8 [Key Recovery](#88-key-recovery)
+   - 8.9 [Key Rotation Protocol](#89-key-rotation-protocol)
+   - 8.10 [Specification Versioning](#810-specification-versioning)
+   - 8.11 [Revocation Roadmap](#811-revocation-roadmap)
+   - 8.12 [Protocol Roadmap](#812-protocol-roadmap)
 9. [Privacy Considerations](#9-privacy-considerations)
 10. [Reference Implementation](#10-reference-implementation)
 11. [Governance](#11-governance)
@@ -197,12 +199,64 @@ If the authoritative registry is unknown, the registry MUST respond with HTTP 40
 
 #### 3.3.3 Federation Requirements
 
-Federation is a SHOULD-level requirement. A conforming `did:trail` implementation:
+Federation is a normative feature of the trust architecture. A conforming `did:trail` implementation:
 
-- SHOULD support registry discovery as defined in §3.3.1
-- SHOULD support cross-registry referrals as defined in §3.3.2
-- MAY operate as a standalone registry without federation support
+- MUST support registry discovery as defined in §3.3.1
+- MUST support cross-registry referrals as defined in §3.3.2
+- MUST adopt a trust anchor role consistent with §3.4 (Trust Anchor Model). Standalone operation without any trust anchor context is NOT a conforming deployment; a registry that does not participate in federation MUST still declare which tier it operates in per §3.4.
 - MUST NOT require federation for basic DID resolution against the default registry
+
+### 3.4 Trust Anchor Model
+
+TRAIL does not rely on a single hard-coded trust anchor. Instead, it defines a **federated hybrid trust model** with three explicit tiers. Verifiers select which roots to trust via a Trust List (see §3.4.4). This section addresses Challenge Register einwand E-013 (Federation Trust Anchor Model) and closes the "MAY operate as standalone" ambiguity previously found in §3.3.
+
+#### 3.4.1 Tier 1 — Root Registries
+
+Tier-1 Root Registries are curated operators that serve as the top of the trust hierarchy. The initial Tier-1 set includes TrailSign AI (TSAI) and additional operators to be defined in the Genesis Issuer Set (planned for v1.2.0-rc1).
+
+Tier-1 registries:
+
+- MUST federate with each other per §3.3 and mutually recognize each other's issued DIDs.
+- MUST publish a signed operator manifest at `.well-known/trail-registry.json` declaring their tier, operator identity, and federation peers.
+- MUST operate a Status List 2021 endpoint as defined in §8.7.
+- SHOULD be jurisdictionally diverse (no single-country concentration) to limit regulatory capture risk.
+
+No single Tier-1 registry is privileged over another. Removal of a Tier-1 registry from the trust set is a verifier-side Trust List decision (§3.4.4), not a protocol action.
+
+#### 3.4.2 Tier 2 — Sub-Registries
+
+Tier-2 Sub-Registries delegate to one or more Tier-1 Root Registries. This is structurally similar to a CA hierarchy, but without a single root: a Tier-2 registry MAY cross-sign with multiple Tier-1 roots and MUST document its delegation chain in its `.well-known/trail-registry.json` manifest under the key `delegatesFrom`.
+
+Tier-2 registries:
+
+- MUST reference at least one Tier-1 root in their manifest.
+- MUST implement §3.3 federation mechanics.
+- MAY issue DIDs for organizations and agents under their delegation scope.
+- MUST publish their own Status List 2021 credential per §8.7.
+
+A Tier-2 registry's scope is inherited from the union of its Tier-1 parents' scopes, unless explicitly narrowed in the manifest.
+
+#### 3.4.3 Tier 3 — Endpoint Endorsements (Web-of-Trust)
+
+Tier-3 endpoints are individual organizations, agents, or non-registry entities that MAY endorse each other directly, forming a web-of-trust overlay on top of the registry hierarchy. Endorsements from Tier-3 peers are verifiable credentials issued under the normal did:trail rules.
+
+Tier-3 endorsements:
+
+- MAY be included in Trust Score calculations under §7.3 dimension D5 (Attestations).
+- MUST be discounted via a Risk Penalty applied during D5 aggregation. Endorsements originating exclusively from Tier-3 (i.e., no Tier-1 or Tier-2 backing) contribute at most a fraction of the weight that a Tier-1/Tier-2 attestation contributes. The exact discount factor is normative policy of the verifier's Trust Score Engine and MUST be documented.
+- MUST NOT be treated as authoritative revocation signals. Only Tier-1 and Tier-2 registries publish authoritative Status Lists per §8.7.
+
+This tiering prevents web-of-trust cluster attacks (where N colluding Tier-3 endpoints mutually endorse each other to fabricate a high trust score) from reaching the weight of genuine Tier-1/Tier-2 attestations.
+
+#### 3.4.4 Verifier Trust List
+
+Verifiers select their active trust anchor set via a **Trust List** — a local, verifier-maintained list of Tier-1 Root Registries whose DIDs and Status Lists are considered authoritative.
+
+- Verifiers MUST NOT hard-code a single registry as the sole anchor. At minimum the TRAIL default registry (registry.trailprotocol.org) and one additional Tier-1 operator MUST be selectable.
+- Verifiers MAY maintain multiple Trust Lists for different contexts (e.g., EU-only, global, high-assurance).
+- The Trust List is configuration, not protocol state. Changes to the Trust List are local policy decisions and require no protocol-level notification.
+
+This model makes the trust anchor decision explicit and auditable at the verifier level, which is the correct layer for policy — consistent with the architecture of W3C VC Data Model 2.0 and the broader principle that verifiers determine their own trust.
 
 ---
 
@@ -411,7 +465,7 @@ The `https://trailprotocol.org/ns/did/v1` JSON-LD context defines the following 
 | `aiSystemType` | Property | Classification of AI system (llm / agent / classifier / other) |
 | `euAiActRiskClass` | Property | EU AI Act risk classification (minimal / limited / high / unacceptable) |
 | `parentOrganization` | Property | DID of parent org (required for `agent` mode DIDs) |
-| `recoveryPolicy` | Property | Key recovery policy configuration (see §8.7) |
+| `recoveryPolicy` | Property | Key recovery policy configuration (see §8.8) |
 | `trailTrustTier` | Property | Trust tier level (0, 1, or 2) as defined in §7.2 |
 
 ### 5.3 Extended DID Document (Full Example)
@@ -1132,7 +1186,7 @@ Organizations claiming EU AI Act Art. 12 compliance via TRAIL SHOULD maintain `P
 - Private keys MUST be stored in hardware security modules (HSMs) for production deployments
 - RECOMMENDED: key rotation every 12 months or upon suspected compromise
 - The TRAIL Protocol RECOMMENDS using PKCS#11-compatible HSMs (e.g., AWS CloudHSM, Azure Dedicated HSM)
-- Organizations MUST implement at least one key recovery mechanism as defined in §8.7
+- Organizations MUST implement at least one key recovery mechanism as defined in §8.8
 
 ### 8.2 Crypto Agility
 
@@ -1207,13 +1261,65 @@ All communication with the TRAIL Registry MUST use TLS 1.3 or higher. Certificat
 
 ### 8.6 Revocation Timeliness
 
-Verifiers MUST check credential revocation status at verification time. Cached revocation lists MUST NOT be used for longer than 1 hour for high-stakes verification contexts.
+Verifiers MUST check credential revocation status at verification time. Cached revocation lists MUST NOT be used for longer than 1 hour for high-stakes verification contexts. The normative mechanism for revocation propagation across registries is defined in §8.7.
 
-### 8.7 Key Recovery
+### 8.7 Revocation Propagation Protocol
+
+This section defines how credential revocation propagates from the authoritative registry to verifiers in federated and cross-registry deployments. It addresses Challenge Register einwand E-014 (Cross-Registry Verification + Revocation Propagation) by making §8.6 actionable.
+
+#### 8.7.1 Authoritative Registry
+
+For every did:trail identifier there is exactly **one authoritative registry** at any point in time. The authoritative registry is the one advertised via the `TrailRegistryService` service endpoint in the DID Document (see §3.3.1 item 1). Conflicting authoritative claims for the same DID are a specification violation and MUST be rejected by verifiers.
+
+Non-authoritative registries (mirrors, federation peers) MAY cache DID Documents and Status Lists for this DID, but MUST NOT answer revocation queries as the source of truth. They MUST redirect (HTTP 301) to the authoritative registry as specified in §3.3.2.
+
+#### 8.7.2 Status List 2021 (Normative)
+
+Every TRAIL Registry MUST publish a signed **Status List 2021** credential for all credentials it issues or anchors, following the W3C Status List 2021 specification [STATUS-LIST-2021]. Each verifiable credential issued under this method MUST include a `credentialStatus` property of type `StatusList2021Entry` pointing to the registry's Status List credential.
+
+The Status List credential:
+
+- MUST be served over HTTPS at a stable URL advertised in the registry's `.well-known/trail-registry.json` manifest under the key `statusListEndpoint`.
+- MUST be signed by a key whose public material is published in the registry's DID Document or `.well-known` manifest, enabling verifier-side signature verification without trusting the transport layer alone.
+- MUST use monotonically increasing version numbers (`statusListVersion`) so verifiers can detect stale caches.
+- MUST be refreshed whenever a status bit changes (revocation or suspension).
+
+#### 8.7.3 Verifier Polling
+
+Verifiers MUST fetch the authoritative registry's Status List 2021 credential and MUST NOT cache it for longer than **1 hour** (consistent with §8.6). This polling model is deliberately chosen over push-based propagation to keep verifiers stateless and to avoid ambient trust in federation peers.
+
+Verifiers SHOULD use HTTP conditional requests (`If-None-Match` / `If-Modified-Since`) to minimize bandwidth. Registries MUST honor `ETag` and `Last-Modified` headers.
+
+On Status List fetch failure, verifiers MUST fail closed: a credential whose revocation status cannot be determined within the freshness window MUST NOT be treated as valid for high-stakes verification contexts.
+
+#### 8.7.4 Cross-Registry Score Verification
+
+When Registry B presents a trust score for a DID whose authoritative registry is Registry A, Registry B's score claim is NOT canonical. The canonical source is the **raw score inputs** exposed by Registry A via the endpoint defined in §7.3.4.
+
+Verifiers that need to validate a cross-registry trust score MUST:
+
+1. Resolve the DID Document and identify the authoritative registry via `TrailRegistryService`.
+2. Fetch the raw score inputs from the authoritative registry's §7.3.4 endpoint.
+3. Recompute the score locally using the normative formula in §7.3.
+4. Compare against their own policy thresholds.
+
+This recomputation model eliminates trust asymmetry between federated registries and closes the Score-Laundering vector where Registry B could inherit or fabricate scores on behalf of Registry A.
+
+#### 8.7.5 Revocation Latency Budget
+
+The end-to-end revocation propagation latency budget is:
+
+- **T+0:** Authoritative registry flips status bit and re-signs Status List.
+- **T+≤60s:** Status List is served at the stable endpoint (registry-internal publish latency).
+- **T+≤1h:** All conforming verifiers have refreshed their cache per §8.7.3.
+
+Registries SHOULD publish faster than this budget. Verifiers in high-stakes contexts SHOULD poll more aggressively (e.g., 5 minutes) at the cost of additional bandwidth.
+
+### 8.8 Key Recovery
 
 Loss of private key material can render a DID permanently unusable. Organizations MUST implement at least one of the following key recovery mechanisms.
 
-#### 8.7.1 Multi-Controller Recovery
+#### 8.8.1 Multi-Controller Recovery
 
 A DID Document MAY specify multiple controllers. If the primary controller's key is lost, an alternate controller can authorize key rotation.
 
@@ -1245,7 +1351,7 @@ The DID Document's `controller` property MUST be set to an array containing the 
 
 The recovery key SHOULD be stored in a separate, secure location (e.g., cold storage HSM, offline vault) distinct from the primary key.
 
-#### 8.7.2 Social Recovery
+#### 8.8.2 Social Recovery
 
 Social recovery uses an M-of-N threshold scheme where designated guardians can collectively authorize key rotation. This is RECOMMENDED for organizations that require high resilience against single points of failure.
 
@@ -1283,7 +1389,7 @@ The `recoveryTimeout` field specifies the mandatory waiting period (ISO 8601 dur
 4. After the `recoveryTimeout` expires and the threshold is met, the new key material is activated
 5. The original key material is deactivated
 
-#### 8.7.3 Registry-Assisted Recovery
+#### 8.8.3 Registry-Assisted Recovery
 
 For organizations that prefer registry-mediated recovery, the TRAIL Registry MAY assist with key recovery under strict conditions:
 
@@ -1295,7 +1401,7 @@ For organizations that prefer registry-mediated recovery, the TRAIL Registry MAY
 
 Registry-assisted recovery is a last-resort mechanism. It is RECOMMENDED only when multi-controller and social recovery are not available.
 
-#### 8.7.4 Key Escrow (Optional)
+#### 8.8.4 Key Escrow (Optional)
 
 For organizations in regulated industries (e.g., financial services, healthcare) where regulatory bodies may require access to key material, key escrow MAY be implemented:
 
@@ -1306,11 +1412,11 @@ For organizations in regulated industries (e.g., financial services, healthcare)
 
 Key escrow is OPTIONAL and MUST NOT be required for standard TRAIL registration.
 
-### 8.8 Key Rotation Protocol
+### 8.9 Key Rotation Protocol
 
 Key rotation allows an org or agent DID to update its verification key without changing its identifier. This is essential for key hygiene, post-compromise recovery, and long-term identity continuity.
 
-#### 8.8.1 Rotation Mechanics
+#### 8.9.1 Rotation Mechanics
 
 When a key is rotated:
 
@@ -1332,20 +1438,20 @@ const { document: rotated, rotationMetadata } = rotateKey(doc, keys2);
 // rotated.authentication === ['did:trail:org:...#key-2']
 ```
 
-#### 8.8.2 Constraints
+#### 8.9.2 Constraints
 
 - Self-mode DIDs (`did:trail:self:`) MUST NOT use key rotation because their identifier is derived from the public key. A new self-mode DID MUST be created instead.
 - Org and agent mode DIDs MAY rotate keys without limit.
 - Verifiers SHOULD accept proofs signed by any non-revoked key listed in the `verificationMethod` array.
 - The Registry MUST record the full key rotation history for audit purposes.
 
-#### 8.8.3 Rotation Best Practices
+#### 8.9.3 Rotation Best Practices
 
 - RECOMMENDED rotation interval: every 12 months, or immediately upon suspected compromise
 - Organizations SHOULD implement automated rotation policies
 - Each rotation SHOULD be signed by the **current** active key as authorization
 
-### 8.9 Specification Versioning
+### 8.10 Specification Versioning
 
 DID Documents MUST include a `trail:specVersion` property indicating the specification version they conform to.
 
@@ -1363,9 +1469,9 @@ This enables verifiers to apply the correct validation rules for the document fo
 
 Implementations MUST reject DID Documents whose major version exceeds the implementation's supported major version. Implementations SHOULD accept documents with a higher minor version (unknown properties SHOULD be ignored).
 
-### 8.10 Revocation Roadmap
+### 8.11 Revocation Roadmap
 
-> **Status: Planned** — Credential revocation is a critical feature that requires registry infrastructure. The following design is specified for implementation when the TRAIL Registry reaches operational status.
+> **Status: Superseded in part by §8.7** — The normative propagation protocol is now defined in §8.7 (Revocation Propagation Protocol). This section is retained for historical context and describes the broader rollout plan.
 
 The TRAIL Protocol will implement credential revocation using the [W3C Status List 2021](https://www.w3.org/TR/vc-status-list/) specification:
 
@@ -1376,7 +1482,7 @@ The TRAIL Protocol will implement credential revocation using the [W3C Status Li
 
 Until the registry is operational, self-mode credentials (Tier 0) have no revocation mechanism — they are valid as long as the underlying key material is under the controller's authority.
 
-### 8.11 Protocol Roadmap
+### 8.12 Protocol Roadmap
 
 The following items are planned for future specification versions. They are documented here to ensure continuity and enable community feedback.
 
@@ -1850,6 +1956,17 @@ Tracking issue: [Issue #9](https://github.com/trailprotocol/trail-did-method/iss
 | 3 | **Sharpened protocol-agnostic positioning in Abstract and Design Goals** — Added "protocol-agnostic" and "auditor-grade" language to Abstract. New Design Goal: "Be protocol-agnostic." Added "Protocol Dependency" and "AI Agent Native" rows to Technical Differentiation table. | Abstract, §1.2 |
 | 4 | **Added Appendix D: Artifact Provenance** — New informative appendix defining `OutputAttestationVC` credential type for binding agent identity to produced artifacts. Includes JSON example, field requirements, verification algorithm, and relationship to D3 Trust Score dimension. Cross-reference added from §7.3.1. | Appendix D (new), §7.3.1 |
 
+#### v1.2.0-draft Addendum (2026-04-14) — Issue #1 PR-Bundle
+
+Addresses Issue [#1](https://github.com/trailprotocol/trail-did-method/issues/1) (Federation + Trust Anchor). Builds on the technical memo from Amey Parle (2026-04-13) and closes Challenge Register einwaende E-013 (Federation Trust Anchor Model) and E-014 (Cross-Registry Verification + Revocation Propagation). Co-architected with Amey Parle.
+
+| # | Change | Sections Affected |
+|---|--------|-------------------|
+| 5 | **Added Trust Anchor Model (normative)** — New §3.4 defining the federated hybrid trust model: Tier-1 Root Registries (TSAI + curated operators, mutual recognition), Tier-2 Sub-Registries (delegation from Tier-1, CA-like without single anchor), Tier-3 endpoint endorsements (web-of-trust with Risk Penalty discount in §7.3 D5). Verifiers select trust anchors via a local Trust List. Closes E-013. | §3.4 (new), §3.3.3 |
+| 6 | **Federation requirements hardened** — §3.3.3 updated: registry discovery and cross-registry referrals are now MUST-level. "MAY operate as a standalone registry without federation support" removed; every conforming registry must declare a §3.4 tier. | §3.3.3 |
+| 7 | **Added Revocation Propagation Protocol (normative)** — New §8.7 specifying: exactly one authoritative registry per DID via `TrailRegistryService` endpoint; mandatory signed W3C Status List 2021 credential per registry; verifier polling with ≤1h cache consistent with §8.6; cross-registry score verification requires verifier-side recomputation from §7.3.4 raw inputs (eliminates score-laundering); end-to-end revocation latency budget. Closes E-014. | §8.7 (new), §8.6, §7.3.4 |
+| 8 | **Renumbered §8.7–§8.11 → §8.8–§8.12** — Key Recovery, Key Rotation Protocol, Specification Versioning, Revocation Roadmap, and Protocol Roadmap shifted down by one to make room for the new §8.7 Revocation Propagation Protocol. All cross-references updated. | §8.8–§8.12 |
+
 ### v1.1.0-draft (2026-03-04)
 
 This release addresses 9 critical improvements identified during community review and internal audit of v1.0.0-draft.
@@ -1863,13 +1980,13 @@ This release addresses 9 critical improvements identified during community revie
 | 5 | **Reframed self-signed mode** — Renamed from "Early Adopter Mode" to "Local Verification Mode." Now positioned as the foundational trust tier (Tier 0) rather than a temporary workaround. Added 3-tier trust model. | §4.2, §7.2 (rewritten) |
 | 6 | **Fixed EU AI Act overclaims** — Changed language from "designed for compliance" to "designed to support organizational compliance." Added honest capability mapping table with explicit compliance gaps and disclaimer. | Abstract, §1.2, §7.4 (new) |
 | 7 | **Added Governance section** — New §11 covering governance evolution (3 phases), dispute resolution with revocation appeals process, registry operator requirements, and change management. | §11 (new), §6.4.2 |
-| 8 | **Added Key Recovery mechanisms** — New §8.7 defining four recovery options: multi-controller, social recovery (M-of-N threshold), registry-assisted recovery, and optional key escrow. | §8.1, §8.7 (new), §5.2 |
+| 8 | **Added Key Recovery mechanisms** — New §8.8 defining four recovery options: multi-controller, social recovery (M-of-N threshold), registry-assisted recovery, and optional key escrow. | §8.1, §8.8 (new), §5.2 |
 | 9 | **Rewrote Reference Implementation** — Removed fictional package references. Replaced with `@trailprotocol/core` (actual package under development). Universal Resolver driver marked as planned. | §10 (rewritten) |
 | 10 | **Added Crypto Agility** — New §8.2 defining the `SUPPORTED_CRYPTOSUITES` registry, DID Document `trail:supportedCryptosuites` declaration, and migration path for future algorithm transitions. `createProof()` now accepts an explicit `cryptosuite` parameter. | §8.2 (rewritten) |
-| 11 | **Added Key Rotation Protocol** — New §8.8 specifying key rotation mechanics for org/agent DIDs. Previous keys are retained for historical verification. Self-mode DIDs cannot rotate (key = identifier). | §8.8 (new) |
-| 12 | **Added Specification Versioning** — New §8.9. DID Documents now include `trail:specVersion` for backwards-compatible evolution. Follows Semantic Versioning 2.0.0. | §8.9 (new) |
-| 13 | **Added Revocation Roadmap** — New §8.10 defining the planned W3C Status List 2021 integration for credential revocation. | §8.10 (new) |
-| 14 | **Added Protocol Roadmap** — New §8.11 documenting planned features for v1.2.0 and v2.0.0 including Universal Resolver driver, npm publish, Trust Score Engine, and post-quantum migration. | §8.11 (new) |
+| 11 | **Added Key Rotation Protocol** — New §8.9 specifying key rotation mechanics for org/agent DIDs. Previous keys are retained for historical verification. Self-mode DIDs cannot rotate (key = identifier). | §8.9 (new) |
+| 12 | **Added Specification Versioning** — New §8.10. DID Documents now include `trail:specVersion` for backwards-compatible evolution. Follows Semantic Versioning 2.0.0. | §8.10 (new) |
+| 13 | **Added Revocation Roadmap** — New §8.11 defining the planned W3C Status List 2021 integration for credential revocation. | §8.11 (new) |
+| 14 | **Added Protocol Roadmap** — New §8.12 documenting planned features for v1.2.0 and v2.0.0 including Universal Resolver driver, npm publish, Trust Score Engine, and post-quantum migration. | §8.12 (new) |
 | 15 | **Added EBSI + Technical Differentiation Table** — Added did:ebsi to §1.3 relationship table and new 10-criterion technical comparison matrix (did:trail vs did:web vs did:ion vs did:ebsi). | §1.3 (expanded) |
 | 16 | **Increased hash suffix from 48-bit to 64-bit** — Changed `trail-hash` ABNF from `12HEXDIG` to `16HEXDIG` (SHA-256 truncated to 64 bits) to increase birthday-bound collision resistance from ~16.7M to ~4.3B identifiers. All examples updated. | §4.1, §4.5.2, ABNF, all examples |
 
