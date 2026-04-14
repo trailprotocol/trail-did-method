@@ -862,6 +862,49 @@ Self-signed credentials MUST include `"trailTrustTier": 0` in the credential sub
 | EU AI Act support | Minimal | Standard | Full |
 | Trust Score | N/A | Computed | Computed + audited |
 
+#### 7.2.5 Probationary Tier
+
+New DIDs registered in the TRAIL ecosystem MUST enter a **probationary state** before becoming eligible for their full computed Trust Score. This prevents trust laundering, where a reputable issuer could grant a newly registered agent an unearned high score through inheritance.
+
+**Probationary State Rules:**
+
+- A DID enters the probationary state at the moment of registration.
+- While in probationary state, the effective Trust Score is **capped** independent of the raw computed value:
+
+  ```
+  effective_score = min(computed_score, probationary_cap)
+  probationary_cap = 0.5 + 0.5 × min(1, verified_interactions / 100)
+  ```
+
+- The minimum probationary duration is **30 days** from registration, regardless of interaction count.
+- A DID exits the probationary state when BOTH conditions are met:
+  1. `verified_interactions >= 100`
+  2. `age_days >= 30`
+
+- **Issuer reputation does NOT bypass the cap.** A high-reputation issuer contributes only to dimension D1 (Identity Verification), not to the probationary cap. There is no "partial trust inheritance" from issuer to subject.
+
+**Resolution Metadata:**
+
+Registries MUST expose the probationary state in resolution responses:
+
+```json
+{
+  "trailTrustScore": {
+    "overall": 0.50,
+    "computedOverall": 0.82,
+    "probationary": {
+      "state": "probationary",
+      "cap": 0.50,
+      "ageDays": 12,
+      "verifiedInteractions": 23,
+      "exitsEarliest": "2026-05-14T00:00:00Z"
+    }
+  }
+}
+```
+
+Verifiers MUST use `overall` (the effective capped score), not `computedOverall`, when making trust decisions. `computedOverall` is exposed for transparency only.
+
 ### 7.3 Trust Score
 
 The TRAIL Trust Score quantifies the trustworthiness of a registered identity across five independently verifiable dimensions.
@@ -881,10 +924,13 @@ The TRAIL Trust Score quantifies the trustworthiness of a registered identity ac
 The overall Trust Score `S` is computed as:
 
 ```
-S = Σ(wi × di) for i = 1..5
+S_raw      = Σ(wi × di) for i = 1..5
+S_mature   = m × S_raw                        // see §7.3.8 Maturity Multiplier
+S          = S_mature × (1 - p)               // see §7.3.7 Anomaly Penalties
+effective  = min(S, probationary_cap)          // see §7.2.5 Probationary Tier
 ```
 
-Where `wi` is the weight and `di` is the dimension score (0.0–1.0) for each dimension.
+Where `wi` is the weight and `di` is the dimension score (0.0–1.0) for each dimension, `m` is the maturity multiplier (§7.3.8), `p` is the anomaly penalty factor (§7.3.7), and `effective` is the score verifiers MUST use for trust decisions. Per-dimension decay is defined in §7.3.9.
 
 **Dimension Formulas:**
 
@@ -916,10 +962,22 @@ Where `wi` is the weight and `di` is the dimension score (0.0–1.0) for each di
   Where `compliant_checks` is the number of automated policy compliance checks that passed. Measured over trailing 90 days.
 
 - **D5 (Third-Party Attestations):**
-  ```
-  d5 = min(1.0, valid_attestations / 5)
-  ```
-  Where `valid_attestations` is the count of non-expired, non-revoked Verifiable Credentials from distinct accredited attestors. Capped at 5.
+
+  D5 is **evidence-weighted, not count-weighted**. Two effects compose:
+
+  1. **Issuer Independence Score** — attestations from issuers in the same governance/control cluster are discounted:
+     ```
+     independence = Σ (1 / cluster_size_i) for each attesting issuer i
+     ```
+     Where `cluster_size_i` is the number of issuers known to share a control cluster with issuer `i` (including itself). Two issuers operated by the same legal entity, or sharing >50% governance overlap as recorded in their `did:trail:org` documents, count as one cluster. An attestation from a singleton issuer contributes `1.0`; one from a 5-issuer cluster contributes `0.2`.
+
+  2. **Diminishing Returns** — additional independent attestations contribute progressively less:
+     ```
+     d5 = 1 - exp(-k × independence)
+     ```
+     Where `k = 0.45` (calibrated so ~5 fully independent attestations yield d5 ≈ 0.9). This replaces the previous linear cap.
+
+  Where `valid_attestations` are non-expired, non-revoked Verifiable Credentials from distinct accredited attestors. Cluster membership is computed from the issuers' published `did:trail:org` governance metadata; absent metadata, registries SHOULD treat issuers sharing a `controlledBy` field as one cluster. The previous formula `d5 = min(1.0, valid_attestations / 5)` is deprecated as of v1.2.0 — it permitted Sybil attacks via controlled issuer clusters (see §7.3.7).
 
 #### 7.3.3 Score Transparency
 
@@ -1012,6 +1070,50 @@ The trust score model has inherent limitations that verifiers MUST be aware of:
 - **Tier 0 exclusion:** Self-signed DIDs (Tier 0) do not participate in the trust score system at all, as there is no registry to collect or compute scores.
 - **Gaming resistance:** The formula-based approach creates potential for strategic behavior optimization. The TRAIL Registry SHOULD implement anomaly detection for sudden score changes and MAY require minimum observation periods before scores are considered stable.
 - **D5 bootstrapping:** Early in the ecosystem, few accredited auditors may exist, limiting the practical value of D5. The protocol anticipates this through the three-phase governance model (§11.1).
+
+#### 7.3.7 Anomaly Penalties
+
+The Trust Score MUST be discounted multiplicatively by an anomaly penalty factor `p ∈ [0, 1]` derived from rule-based graph analysis of the attestation and interaction graph. Rule-based detection forms the normative core; machine-learning classifiers MAY be used as a secondary signal but MUST NOT solely determine `p`.
+
+**Rule-based detectors (normative):**
+
+| Code | Detector | Penalty Contribution |
+|------|----------|----------------------|
+| A1 | **Circular endorsement** — DID A attests B, B attests A within 30 days; or any closed cycle of length ≤ 4 in the attestation graph | +0.30 per detected cycle (max +0.50) |
+| A2 | **Cluster collusion** — ≥ 60% of a DID's attestations originate from issuers in a single control cluster (see §7.3.2 D5) | +0.40 |
+| A3 | **Velocity anomaly** — D5 grows by > 5 independent attestations within any 7-day window during the first 90 days of the DID's lifetime | +0.20 |
+| A4 | **Interaction burst** — D2 `interactions_12m` increases by > 10× the trailing 30-day average within 24 hours, with > 50% of new counterparties sharing a control cluster | +0.30 |
+| A5 | **Co-registration cluster** — ≥ 5 DIDs registered within a 60-minute window from a single registrar account, all attesting one another within their first 30 days | +0.50 |
+
+`p = min(1.0, Σ contributions)`. Detected anomalies MUST be exposed in the raw inputs endpoint (§7.3.4) under an `anomalies` field with the detector code, evidence, and detection timestamp. A DID with `p ≥ 0.5` MUST be flagged in resolution metadata (`"anomalyFlag": true`).
+
+**Machine-learning role:** Registries MAY run ML-based anomaly classifiers (graph neural networks, embedding-based clustering) and MAY surface their findings as additional `anomalies` entries with detector code `M*`, but ML findings MUST NOT contribute more than 0.20 to `p`. The rule-based core ensures explainability and auditability for EU AI Act Art. 13/14 compliance.
+
+#### 7.3.8 Maturity Multiplier
+
+The Trust Score MUST be scaled by a time-based maturity multiplier `m`:
+
+```
+m = min(1.0, age_days / 180)
+```
+
+Where `age_days` is the number of days since the DID was first registered in any TRAIL Registry. A DID that has existed for less than 180 days cannot reach a Trust Score of 1.0, even with perfect dimension scores. This complements §7.2.5 (Probationary Tier) by extending the trust-building period beyond the probationary cap exit.
+
+The maturity multiplier MUST be exposed in resolution metadata as `"maturity": { "ageDays": N, "multiplier": M }`.
+
+#### 7.3.9 Signal Decay
+
+Each Trust Score dimension decays differently based on signal type. Decay is applied to each `di` *before* aggregation in §7.3.2.
+
+| Dimension | Decay Type | Specification |
+|-----------|------------|---------------|
+| **D1** Identity Verification | Step function | Full value until annual re-verification deadline; on the day after the deadline, `d1` drops to `0.4` (the self-declared baseline) until re-verification is recorded. |
+| **D2** Track Record | Rolling window | 12-month rolling window (unchanged from §7.3.2). No additional decay. |
+| **D3** Information Provenance | Exponential | Half-life of **30 days**: `d3_decayed = d3_observed × 0.5^(days_since_observation / 30)`. Behavioral signals must reflect current practice. |
+| **D4** Behavioral Consistency | Exponential | Half-life of **30 days** (same formula as D3). |
+| **D5** Third-Party Attestations | Linear over VC validity | Each attestation contributes its full independence-weighted value at issuance, decaying linearly to zero across `validFrom`–`validUntil`. Expired or revoked attestations contribute zero. |
+
+Registries MUST recompute decayed dimension scores at least once per 24 hours and on every resolution request that occurs more than 1 hour after the last computation.
 
 ### 7.4 EU AI Act Alignment
 
