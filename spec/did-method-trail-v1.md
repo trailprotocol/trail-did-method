@@ -1609,6 +1609,126 @@ The following items are planned for future specification versions. They are docu
 
 ---
 
+## 8.12 Agent Declaration in Content Signatures
+
+### 8.12.1 Motivation
+
+As AI-generated content proliferates across channels (email, code, social media, customer interactions), recipients and downstream systems need a cryptographic mechanism to determine:
+
+1. **Whether** a given artifact was produced by an AI agent (as opposed to a human or a different agent)
+2. **Which** agent produced it
+3. **Which organization is accountable** for the agent's output under applicable regulation (e.g., EU AI Act Art. 12)
+
+Existing approaches — platform-specific watermarks, text-based disclaimers, metadata headers — are either easily stripped, non-verifiable without vendor cooperation, or cannot survive format conversion. A DID-based signature mechanism solves this by binding the artifact to an agent DID that is itself bound to a human-accountable organization DID through the chain established in §7.5 (PlatformIdentityBinding).
+
+The `AgentDeclaration` pattern defined in this section extends the assertion capability of `did:trail` agent DIDs (§4.3) to arbitrary content artifacts, producing a portable, verifier-friendly proof that:
+
+- Works offline (no call to AI platform required)
+- Survives copy/paste and re-publication (signature travels with the content)
+- Composes with existing W3C Verifiable Credentials and Data Integrity specifications
+- Declares the accountable issuer organization explicitly
+
+### 8.12.2 AgentDeclaration Content Signature Format
+
+An AgentDeclaration is a Data Integrity proof ([VC-DATA-INTEGRITY]) over a canonicalized content manifest. Implementations MUST use a cryptosuite declared in the signing DID Document's `trail:supportedCryptosuites` (§8.2). The default cryptosuite is `eddsa-jcs-2023`.
+
+The signed manifest is a JSON object with the following shape:
+
+```json
+{
+  "@context": [
+    "https://w3id.org/security/data-integrity/v2",
+    "https://trailprotocol.org/ns/trail/v1"
+  ],
+  "type": "AgentDeclaration",
+  "agent": "did:trail:agent:acme-sales-agent-v2-de-3f8c",
+  "accountableOrg": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a",
+  "contentHash": {
+    "algorithm": "sha-256",
+    "value": "3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b"
+  },
+  "contentType": "text/plain",
+  "createdAt": "2026-04-21T10:30:00Z",
+  "purpose": "assertion",
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2023",
+    "created": "2026-04-21T10:30:00Z",
+    "verificationMethod": "did:trail:agent:acme-sales-agent-v2-de-3f8c#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z3FXQjecWufY...signature..."
+  }
+}
+```
+
+| Field | Requirement | Description |
+|-------|-------------|-------------|
+| `@context` | MUST | Includes `https://trailprotocol.org/ns/trail/v1` for the `AgentDeclaration` type |
+| `type` | MUST | Fixed literal `"AgentDeclaration"` |
+| `agent` | MUST | DID of the producing agent (Tier 1 or Tier 2 did:trail agent DID) |
+| `accountableOrg` | MUST | DID of the organization accountable for the agent's output; MUST match the `issuer` of a resolvable `PlatformIdentityBinding` VC (§7.5) or a direct `controller` relationship on the agent DID Document |
+| `contentHash.algorithm` | MUST | A hash algorithm declared in `trail:supportedCryptosuites` of the agent DID Document; default `"sha-256"` |
+| `contentHash.value` | MUST | Lowercase hex digest of the raw content bytes |
+| `contentType` | SHOULD | IANA media type of the signed content |
+| `createdAt` | MUST | ISO 8601 UTC timestamp |
+| `purpose` | MUST | MUST be `"assertion"` for content-origin claims |
+| `proof` | MUST | W3C Data Integrity proof ([VC-DATA-INTEGRITY]) |
+| `proof.verificationMethod` | MUST | Full DID URL of a verification method in the agent DID Document with `assertionMethod` relationship |
+
+The manifest is canonicalized using the JCS algorithm (RFC 8785) before signing, consistent with `eddsa-jcs-2023` (§8.2).
+
+Content MAY be transported alongside its AgentDeclaration as a detached envelope, or the declaration MAY be embedded (e.g., in HTTP headers, email headers per [RFC 5322], or file metadata). Embedding mechanisms are OUT OF SCOPE for this specification but implementations SHOULD prefer detached transport for format portability.
+
+### 8.12.3 Verification Algorithm
+
+A verifier presented with content C and a candidate AgentDeclaration D MUST perform the following steps:
+
+1. Parse D and confirm `type == "AgentDeclaration"` and the required fields listed in §8.12.2 are present.
+2. Compute `hash(C)` using `D.contentHash.algorithm` and compare lowercase hex against `D.contentHash.value`. If unequal, verification FAILS.
+3. Resolve `D.agent` using the `did:trail` resolution algorithm (§5). If resolution fails or the DID Document is revoked (§8.6), verification FAILS.
+4. Locate the verification method identified by `D.proof.verificationMethod` within the resolved DID Document. The method MUST appear in the `assertionMethod` set. If absent, verification FAILS.
+5. Verify `D.proof` using the cryptosuite named in `D.proof.cryptosuite`. The cryptosuite MUST be listed in `trail:supportedCryptosuites` of the resolved DID Document (§8.2). If verification fails or the cryptosuite is not supported, verification FAILS.
+6. Resolve `D.accountableOrg` and establish the accountability chain by one of:
+   a. A `PlatformIdentityBinding` VC (§7.5) issued by `D.accountableOrg` naming `D.agent` as `credentialSubject.id`, OR
+   b. A direct `controller` entry in the agent DID Document referencing `D.accountableOrg`.
+   If neither binding is found, verification FAILS.
+7. Check revocation status for both the agent DID and — if a binding VC was used — the VC's `credentialStatus` (§8.6). If either is revoked, verification FAILS.
+
+A verifier MUST NOT require cooperation from the AI platform on which the agent was deployed to complete verification. All required inputs are obtainable from the content, the declaration, and the public `did:trail` registry.
+
+### 8.12.4 Accountability Model
+
+The `accountableOrg` field makes the issuer organization the bearer of accountability for content signed under an AgentDeclaration. This mirrors the Tier 1 accountability model established in §7.5.4: the platform (if any) operates as infrastructure and is not a legal bearer of content responsibility.
+
+Three accountability patterns are valid:
+
+1. **Self-hosted agent** — The org runs the agent under its own infrastructure. `accountableOrg` = `controller` of the agent DID Document. No PlatformIdentityBinding VC is required.
+2. **Managed platform deployment** — The agent runs on a third-party AI platform (e.g., Anthropic Managed Agents). `accountableOrg` issues a PlatformIdentityBinding VC (§7.5) that authoritatively names the agent DID as its delegate. The VC is the accountability root; the platform is transparent to the verifier.
+3. **Federated delegation** — The `accountableOrg` DID is itself part of a Federation Trust Anchor chain (§3.4). Revocation propagates per §8.7.
+
+Verifiers MAY reject AgentDeclarations whose accountable organization is outside the verifier's trust policy (e.g., not listed in the verifier's accepted anchor set).
+
+### 8.12.5 EU AI Act Art. 12 Audit Trail
+
+AgentDeclarations are a compliant record-keeping mechanism under EU AI Act Art. 12 (Record-Keeping) for high-risk AI systems producing content in the EU. A deployer retaining the signed declarations alongside the content artifacts provides:
+
+- **Attribution** — which agent produced the content (§8.12.2 `agent`)
+- **Accountability** — which legal entity is responsible (§8.12.2 `accountableOrg`)
+- **Integrity** — the content has not been modified since signing (§8.12.3 step 2)
+- **Non-repudiation** — the signature is verifiable against a public registry (§8.12.3 step 5)
+- **Revocation awareness** — the audit trail reflects the DID and VC revocation state at verification time (§8.12.3 step 7)
+
+Conforming deployers SHOULD retain AgentDeclarations for at least the minimum period required by applicable sectoral regulation (for EU AI Act high-risk systems, 6 months per Art. 12(1), longer where sectoral law applies).
+
+### 8.12.6 Security Considerations
+
+- **Hash-algorithm agility** — The `contentHash.algorithm` MUST be constrained to algorithms declared in the agent's `trail:supportedCryptosuites`. Verifiers MUST reject declarations using algorithms outside that declared set to prevent downgrade attacks.
+- **Replay across contexts** — Verifiers SHOULD incorporate `createdAt` into context-specific policy (e.g., reject declarations older than a sector-defined freshness window).
+- **Key compromise** — If the agent's signing key is compromised and rotated (§8.8), existing declarations signed by the revoked key MUST verify as FAILED from the revocation time onward, consistent with §8.6.
+- **Content mutability** — Signed content is integrity-locked at sign time. Downstream transformations (translation, summarization, quotation) produce new artifacts that require new declarations; the original declaration does not transitively cover derivative content.
+
+---
+
 ## 9. Privacy Considerations
 
 ### 9.1 Minimal Disclosure
