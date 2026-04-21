@@ -68,6 +68,7 @@ This document is a **Draft** specification submitted for registration in the [W3
    - 8.10 [Specification Versioning](#810-specification-versioning)
    - 8.11 [Revocation Roadmap](#811-revocation-roadmap)
    - 8.12 [Protocol Roadmap](#812-protocol-roadmap)
+   - 8.13 [Agent Declaration in Content Signatures](#813-agent-declaration-in-content-signatures)
 9. [Privacy Considerations](#9-privacy-considerations)
 10. [Reference Implementation](#10-reference-implementation)
 11. [Governance](#11-governance)
@@ -1609,9 +1610,9 @@ The following items are planned for future specification versions. They are docu
 
 ---
 
-## 8.12 Agent Declaration in Content Signatures
+## 8.13 Agent Declaration in Content Signatures
 
-### 8.12.1 Motivation
+### 8.13.1 Motivation
 
 As AI-generated content proliferates across channels (email, code, social media, customer interactions), recipients and downstream systems need a cryptographic mechanism to determine:
 
@@ -1628,7 +1629,7 @@ The `AgentDeclaration` pattern defined in this section extends the assertion cap
 - Composes with existing W3C Verifiable Credentials and Data Integrity specifications
 - Declares the accountable issuer organization explicitly
 
-### 8.12.2 AgentDeclaration Content Signature Format
+### 8.13.2 AgentDeclaration Content Signature Format
 
 An AgentDeclaration is a Data Integrity proof ([VC-DATA-INTEGRITY]) over a canonicalized content manifest. Implementations MUST use a cryptosuite declared in the signing DID Document's `trail:supportedCryptosuites` (§8.2). The default cryptosuite is `eddsa-jcs-2023`.
 
@@ -1679,11 +1680,11 @@ The manifest is canonicalized using the JCS algorithm (RFC 8785) before signing,
 
 Content MAY be transported alongside its AgentDeclaration as a detached envelope, or the declaration MAY be embedded (e.g., in HTTP headers, email headers per [RFC 5322], or file metadata). Embedding mechanisms are OUT OF SCOPE for this specification but implementations SHOULD prefer detached transport for format portability.
 
-### 8.12.3 Verification Algorithm
+### 8.13.3 Verification Algorithm
 
 A verifier presented with content C and a candidate AgentDeclaration D MUST perform the following steps:
 
-1. Parse D and confirm `type == "AgentDeclaration"` and the required fields listed in §8.12.2 are present.
+1. Parse D and confirm `type == "AgentDeclaration"` and the required fields listed in §8.13.2 are present.
 2. Compute `hash(C)` using `D.contentHash.algorithm` and compare lowercase hex against `D.contentHash.value`. If unequal, verification FAILS.
 3. Resolve `D.agent` using the `did:trail` resolution algorithm (§5). If resolution fails or the DID Document is revoked (§8.6), verification FAILS.
 4. Locate the verification method identified by `D.proof.verificationMethod` within the resolved DID Document. The method MUST appear in the `assertionMethod` set. If absent, verification FAILS.
@@ -1696,7 +1697,7 @@ A verifier presented with content C and a candidate AgentDeclaration D MUST perf
 
 A verifier MUST NOT require cooperation from the AI platform on which the agent was deployed to complete verification. All required inputs are obtainable from the content, the declaration, and the public `did:trail` registry.
 
-### 8.12.4 Accountability Model
+### 8.13.4 Accountability Model
 
 The `accountableOrg` field makes the issuer organization the bearer of accountability for content signed under an AgentDeclaration. This mirrors the Tier 1 accountability model established in §7.5.4: the platform (if any) operates as infrastructure and is not a legal bearer of content responsibility.
 
@@ -1708,19 +1709,19 @@ Three accountability patterns are valid:
 
 Verifiers MAY reject AgentDeclarations whose accountable organization is outside the verifier's trust policy (e.g., not listed in the verifier's accepted anchor set).
 
-### 8.12.5 EU AI Act Art. 12 Audit Trail
+### 8.13.5 EU AI Act Art. 12 Audit Trail
 
 AgentDeclarations are a compliant record-keeping mechanism under EU AI Act Art. 12 (Record-Keeping) for high-risk AI systems producing content in the EU. A deployer retaining the signed declarations alongside the content artifacts provides:
 
-- **Attribution** — which agent produced the content (§8.12.2 `agent`)
-- **Accountability** — which legal entity is responsible (§8.12.2 `accountableOrg`)
-- **Integrity** — the content has not been modified since signing (§8.12.3 step 2)
-- **Non-repudiation** — the signature is verifiable against a public registry (§8.12.3 step 5)
-- **Revocation awareness** — the audit trail reflects the DID and VC revocation state at verification time (§8.12.3 step 7)
+- **Attribution** — which agent produced the content (§8.13.2 `agent`)
+- **Accountability** — which legal entity is responsible (§8.13.2 `accountableOrg`)
+- **Integrity** — the content has not been modified since signing (§8.13.3 step 2)
+- **Non-repudiation** — the signature is verifiable against a public registry (§8.13.3 step 5)
+- **Revocation awareness** — the audit trail reflects the DID and VC revocation state at verification time (§8.13.3 step 7)
 
 Conforming deployers SHOULD retain AgentDeclarations for at least the minimum period required by applicable sectoral regulation (for EU AI Act high-risk systems, 6 months per Art. 12(1), longer where sectoral law applies).
 
-### 8.12.6 Security Considerations
+### 8.13.6 Security Considerations
 
 - **Hash-algorithm agility** — The `contentHash.algorithm` MUST be constrained to algorithms declared in the agent's `trail:supportedCryptosuites`. Verifiers MUST reject declarations using algorithms outside that declared set to prevent downgrade attacks.
 - **Replay across contexts** — Verifiers SHOULD incorporate `createdAt` into context-specific policy (e.g., reject declarations older than a sector-defined freshness window).
@@ -2188,6 +2189,7 @@ Addresses Issue [#1](https://github.com/trailprotocol/trail-did-method/issues/1)
 | 6 | **Federation requirements hardened** — §3.3.3 updated: registry discovery and cross-registry referrals are now MUST-level. "MAY operate as a standalone registry without federation support" removed; every conforming registry must declare a §3.4 tier. | §3.3.3 |
 | 7 | **Added Revocation Propagation Protocol (normative)** — New §8.7 specifying: exactly one authoritative registry per DID via `TrailRegistryService` endpoint; mandatory signed W3C Status List 2021 credential per registry; verifier polling with ≤1h cache consistent with §8.6; cross-registry score verification requires verifier-side recomputation from §7.3.4 raw inputs (eliminates score-laundering); end-to-end revocation latency budget. Closes E-014. | §8.7 (new), §8.6, §7.3.4 |
 | 8 | **Renumbered §8.7–§8.11 → §8.8–§8.12** — Key Recovery, Key Rotation Protocol, Specification Versioning, Revocation Roadmap, and Protocol Roadmap shifted down by one to make room for the new §8.7 Revocation Propagation Protocol. All cross-references updated. | §8.8–§8.12 |
+| 9 | **Added Agent Declaration in Content Signatures (normative)** — New §8.13 defining the `AgentDeclaration` signature pattern: cryptographically binds AI-generated content artifacts to an agent DID and an accountable organization DID. Provides attribution, integrity, non-repudiation, and revocation-awareness properties required under EU AI Act Art. 12. Includes signature format (§8.13.2), verification algorithm (§8.13.3), accountability model (§8.13.4), audit trail mapping (§8.13.5), and security considerations (§8.13.6). | §8.13 (new) |
 
 ### v1.1.0-draft (2026-03-04)
 
