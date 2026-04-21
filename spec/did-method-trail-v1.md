@@ -1614,15 +1614,15 @@ The following items are planned for future specification versions. They are docu
 
 ### 8.13.1 Motivation
 
-As AI-generated content proliferates across channels (email, code, social media, customer interactions), recipients and downstream systems need a cryptographic mechanism to determine:
+Verifiers of AI-generated content artifacts require a mechanism to establish:
 
 1. **Whether** a given artifact was produced by an AI agent (as opposed to a human or a different agent)
 2. **Which** agent produced it
 3. **Which organization is accountable** for the agent's output under applicable regulation (e.g., EU AI Act Art. 12)
 
-Existing approaches — platform-specific watermarks, text-based disclaimers, metadata headers — are either easily stripped, non-verifiable without vendor cooperation, or cannot survive format conversion. A DID-based signature mechanism solves this by binding the artifact to an agent DID that is itself bound to a human-accountable organization DID through the chain established in §7.5 (PlatformIdentityBinding).
+Existing approaches — platform-specific watermarks, text-based disclaimers, metadata headers — are either easily stripped, non-verifiable without vendor cooperation, or do not survive format conversion. This specification addresses this requirement by binding the artifact to an agent DID that is itself bound to a human-accountable organization DID through the chain established in §7.5 (PlatformIdentityBinding).
 
-The `AgentDeclaration` pattern defined in this section extends the assertion capability of `did:trail` agent DIDs (§4.3) to arbitrary content artifacts, producing a portable, verifier-friendly proof that:
+The `AgentDeclaration` pattern defined in this section extends the assertion capability of `did:trail` agent DIDs (§4.3) to arbitrary content artifacts, producing a proof that:
 
 - Works offline (no call to AI platform required)
 - Survives copy/paste and re-publication (signature travels with the content)
@@ -1711,7 +1711,7 @@ Verifiers MAY reject AgentDeclarations whose accountable organization is outside
 
 ### 8.13.5 EU AI Act Art. 12 Audit Trail
 
-AgentDeclarations are a compliant record-keeping mechanism under EU AI Act Art. 12 (Record-Keeping) for high-risk AI systems producing content in the EU. A deployer retaining the signed declarations alongside the content artifacts provides:
+AgentDeclarations are designed to support compliance with EU AI Act Art. 12 (Record-Keeping) for high-risk AI systems producing content in the EU. A deployer retaining the signed declarations alongside the content artifacts provides:
 
 - **Attribution** — which agent produced the content (§8.13.2 `agent`)
 - **Accountability** — which legal entity is responsible (§8.13.2 `accountableOrg`)
