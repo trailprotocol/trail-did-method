@@ -1649,26 +1649,42 @@ Until the registry is operational, self-mode credentials (Tier 0) have no revoca
 
 ### 8.12 Protocol Roadmap
 
-The following items are planned for future specification versions. They are documented here to ensure continuity and enable community feedback.
+The following items are documented to ensure continuity and enable community feedback.
 
-**v1.2.0 (planned)**
-| Item | Description | Dependency |
-|------|-------------|------------|
-| Credential Revocation | W3C StatusList2021 bitstring-based revocation | Registry operational |
-| Universal Resolver Driver | `did:trail` driver for DIF Universal Resolver | Registry operational |
-| JSON-LD Context Deployment | Host `https://trailprotocol.org/ns/did/v1` as resolvable context | trailprotocol.org |
-| npm Publish | Publish `@trailprotocol/core` to npmjs.com | CI/CD pipeline |
-| CI/CD Pipeline | GitHub Actions: build, test, lint on every PR | — |
+**v1.2.0 — Shipped (2026-04-21)**
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Managed Agent Identity (§4.2 + §7.5) | ✅ Shipped | `did:trail:agent` deployment semantics + `PlatformIdentityBinding` VC. Closes [Issue #9](https://github.com/trailprotocol/trail-did-method/issues/9). |
+| Trust Anchor Model (§3.4) | ✅ Shipped | Federated hybrid model: Tier-1 Root, Tier-2 Sub-Registry, Tier-3 Web-of-Trust. |
+| Revocation Propagation Protocol (§8.7) | ✅ Shipped | Normative W3C StatusList2021 integration, signed by registry. Registry server implementation is a v2.0.0 milestone. |
+| JSON-LD Context Deployment | ✅ Shipped | `https://trailprotocol.org/ns/trail/v1` live as of 2026-04-21. |
+| Cross-Method Binding (§5.4) | ✅ Shipped | `alsoKnownAs`-based binding to DIDs from other methods. |
+| AgentDeclaration Content Signatures (§8.13) | ✅ Shipped | Cryptographic binding of AI-generated artifacts to agent DID. |
+| Universal Resolver Driver | ⏳ Pending | Requires registry server (v2.0.0). |
+| npm Publish (`@trailprotocol/core`) | ⏳ Pending | Package scaffolded; publication after v1.3.0 conformance test coverage. |
+| CI/CD Pipeline | ⏳ Pending | GitHub Actions build/test/lint harness. Blocked on conformance test suite. |
+
+**v1.3.0 (planned)**
+
+| Item | Description | Priority |
+|------|-------------|----------|
+| Registry API OpenAPI Spec | Formal OpenAPI 3.0 specification for all §6 endpoints (Registration, Resolution, Update, Revoke, Status, Trust Score, Auth). Mandatory for third-party registry implementations. | Critical |
+| BindingProof for §5.4 | Extend Cross-Method Binding with a normative `BindingProofVC` credential type providing cryptographic evidence of mutual `alsoKnownAs` declarations. Closes the current gap where binding is declaration-only. | High |
+| Trust List JSON Schema | Normative JSON Schema for the §3.4.4 Verifier Trust List format. Required for verifier interoperability across Tier-1 registries. | High |
+| Genesis Issuer Set | Normative definition of the initial Tier-1 Root Registry set and bootstrap mechanism. Required before any production registry deployment. | High |
+| Conformance Test Suite | Test vectors and automated harness for spec-level conformance (DID creation, resolution, revocation, trust score). Prerequisite for Universal Resolver driver and npm publish. | Medium |
 
 **v2.0.0 (planned)**
+
 | Item | Description | Dependency |
 |------|-------------|------------|
-| Registry Server | HTTP API for Tier 1/2 DID Registration + Resolution | PostgreSQL backend |
-| Trust Score Engine | 5-dimension computation (D1-D5) with per-dimension breakdown | Registry operational |
-| Multiple Reference Implementations | Python and Go SDKs for interoperability proof | v1.2.0 stable |
+| Registry Server | HTTP API for Tier 1/2 DID Registration + Resolution per §6 and the v1.3.0 OpenAPI Spec | PostgreSQL backend, v1.3.0 API Spec |
+| Trust Score Engine | 5-dimension computation (D1–D5) with per-dimension breakdown, verifier-side recomputation endpoint | Registry operational |
+| Multiple Reference Implementations | Python and Go SDKs for interoperability proof | v1.3.0 stable |
 | W3C DID Test Suite Compliance | Pass DIF interoperability test suite | Multiple implementations |
-| Post-Quantum Migration | Add post-quantum cryptosuite via Crypto Agility framework | NIST PQC standards finalized |
-| Intermediate CA Onboarding | Partner Registry Operator program | Governance framework v2 |
+| Post-Quantum Migration | Add post-quantum cryptosuite via §8.2 Crypto Agility framework | NIST PQC standards finalized |
+| Intermediate CA Onboarding | Partner Registry Operator program for Tier-2 sub-registries | Governance framework v2 |
 
 ---
 
