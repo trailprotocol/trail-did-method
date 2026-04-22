@@ -792,7 +792,7 @@ Signature: sig1=:BASE64_ENCODED_SIGNATURE:
 
 **Key Rotation:** When rotating the primary identity key, the DID controller MUST include both the old proof (signed with the current key) and the new key material. Key rotation does not change the DID itself. The `trail-hash` suffix remains bound to the original public key to preserve identifier stability.
 
-**Hash and Key Rotation Semantics:** The `trail-hash` suffix in `org` and `agent` mode DIDs is computed once at creation time from `SHA-256(slug + ":" + originalPublicKeyMultibase)[0:12]`. After key rotation, the hash no longer corresponds to the current public key — it serves as a stable, unique identifier bound to the _initial_ key material. This is by design: the DID identifier remains stable across key rotations, and the hash suffix's primary purpose is collision prevention, not ongoing key binding. Verifiers MUST use the current `verificationMethod` in the DID Document (not the hash suffix) to verify signatures.
+**Hash and Key Rotation Semantics:** The `trail-hash` suffix in `org` and `agent` mode DIDs is computed once at creation time from `SHA-256(slug + ":" + originalPublicKeyMultibase)[0:16]`. After key rotation, the hash no longer corresponds to the current public key — it serves as a stable, unique identifier bound to the _initial_ key material. This is by design: the DID identifier remains stable across key rotations, and the hash suffix's primary purpose is collision prevention, not ongoing key binding. Verifiers MUST use the current `verificationMethod` in the DID Document (not the hash suffix) to verify signatures.
 
 **Self-Mode Key Rotation:** Self-signed DIDs (`did:trail:self:*`) encode the public key directly in the DID identifier. Key rotation in self-mode requires creating a new DID, as the identifier IS the key. This is consistent with Tier 0's design as a lightweight, ephemeral identity layer. Organizations that anticipate key rotation SHOULD use `org` or `agent` mode.
 
@@ -2258,6 +2258,14 @@ Addresses Issue [#1](https://github.com/trailprotocol/trail-did-method/issues/1)
 | # | Change | Sections Affected |
 |---|--------|-------------------|
 | 10 | **Added Cross-Method Binding (normative)** — New §5.4 specifying how a `did:trail` DID may declare associations with DIDs from other methods via the W3C DID Core `alsoKnownAs` property. Defines binding declaration, bidirectional verification algorithm, trust inheritance rules (did:trail takes precedence on conflicting TRAIL-specific properties), and security considerations (spoofing risk, key material independence, revocation scope). No new JSON-LD context terms required. | §5.4 (new) |
+
+### v1.2.1 (2026-04-22)
+
+Patch release — normative text alignment only, no behavioral change.
+
+| # | Change | Sections Affected |
+|---|--------|-------------------|
+| 1 | **Fix stale trail-hash truncation reference in §6.3** — §6.3 ("Hash and Key Rotation Semantics") contained `[0:12]`, a leftover from v1.1.0-draft before Change #16 increased the suffix from 48-bit to 64-bit. The authoritative definition in §4.5.2 correctly uses `[0:16]` (16 hex chars, 64 bits). §6.3 now reads `[0:16]` consistently. No behavioral change; implementations already use §4.5.2 as the normative source. | §6.3 |
 
 ### v1.1.0-draft (2026-03-04)
 
