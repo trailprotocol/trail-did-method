@@ -1,0 +1,1049 @@
+openapi: 3.0.3
+
+info:
+  title: TRAIL Registry API
+  version: 1.0.0
+  description: |
+    Formal API specification for a conformant TRAIL Registry (did:trail DID Method).
+
+    A TRAIL Registry is a Tier-1 or Tier-2 node in the federated trust hierarchy
+    defined in §3.4 of the TRAIL DID Method Specification. Conformant registries
+    MUST implement all endpoints marked **REQUIRED** and SHOULD implement endpoints
+    marked **RECOMMENDED**.
+
+    ## Authentication
+
+    All write operations use **DID-based authentication** via RFC 9421 HTTP Message
+    Signatures with Ed25519 keys. Bearer tokens MUST NOT be used as the sole
+    authentication mechanism (§6.5).
+
+    Every authenticated request MUST include three headers:
+
+    ```
+    Authorization: DIDAuth {did}
+    Signature-Input: sig1=("@method" "@target-uri" "content-type" "content-digest");created={unix-ts};keyid="{did}#key-1";alg="ed25519"
+    Signature: sig1=:BASE64_ENCODED_SIGNATURE:
+    ```
+
+    Read endpoints (`GET`) do not require authentication unless otherwise noted.
+
+    ## Base URL
+
+    Production:    `https://registry.trailprotocol.org/1.0`
+    Conformance:   `https://{operator-domain}/1.0`
+
+    ## Versioning
+
+    The path prefix `/1.0/` corresponds to TRAIL DID Method Specification v1.x.
+    Breaking changes will increment the major version prefix.
+
+  contact:
+    name: TRAIL Protocol
+    url: https://trailprotocol.org
+    email: christian.hommrich@trailprotocol.org
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+externalDocs:
+  description: TRAIL DID Method Specification
+  url: https://github.com/trailprotocol/trail-did-method/blob/main/spec/did-method-trail-v1.md
+
+servers:
+  - url: https://registry.trailprotocol.org/1.0
+    description: TSAI Tier-1 Root Registry (production)
+  - url: https://{operator}/1.0
+    description: Conformant operator registry
+    variables:
+      operator:
+        default: registry.example.com
+        description: Registry operator domain
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Tags
+# ──────────────────────────────────────────────────────────────────────────────
+tags:
+  - name: DID Operations
+    description: Create, Resolve, Update, Deactivate (CRUD — §6)
+  - name: Status
+    description: W3C StatusList2021 revocation credential endpoint (§8.7)
+  - name: Trust Score
+    description: Trust score raw inputs for verifier-side computation (§7.3.4)
+  - name: Discovery
+    description: Registry well-known manifest (§3.3.1)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Paths
+# ──────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── 1. Create (Register) ─────────────────────────────────────────────────
+  /register:
+    post:
+      operationId: registerDID
+      summary: Register a new did:trail DID
+      description: |
+        Submit a signed DID Document to the registry for a new `org` or `agent`
+        mode DID. The registry validates syntax, cryptographic proof, hash
+        consistency (§4.5.2), and — for `org` mode — triggers out-of-band KYB
+        verification before the DID is activated.
+
+        For the first-registration bootstrap flow (§6.5.2) the DID does not yet
+        exist; the HTTP Message Signature is verified against the public key
+        embedded in the DID Document body.
+
+        **Conformance:** REQUIRED (§6.1)
+      tags:
+        - DID Operations
+      security:
+        - DIDAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+            example:
+              did: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+              didDocument:
+                "@context":
+                  - "https://www.w3.org/ns/did/v1"
+                  - "https://trailprotocol.org/ns/trail/v1"
+                id: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+                trail:trailTrustTier: 1
+                verificationMethod:
+                  - id: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1"
+                    type: "JsonWebKey2020"
+                    controller: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+                    publicKeyJwk:
+                      kty: "OKP"
+                      crv: "Ed25519"
+                      x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+              proof:
+                type: "DataIntegrityProof"
+                cryptosuite: "eddsa-jcs-2023"
+                created: "2026-04-22T00:00:00Z"
+                verificationMethod: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1"
+                proofPurpose: "assertionMethod"
+                proofValue: "z..."
+      responses:
+        '201':
+          description: DID registered successfully. For `org` mode the DID may be in `pending-kyb` status until KYB verification completes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationCertificate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: DID already exists in this registry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "conflict"
+                message: "DID already registered: did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+        '422':
+          description: DID Document is syntactically valid JSON but fails TRAIL validation (hash mismatch, missing required fields, invalid proof).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── 2. Resolve ────────────────────────────────────────────────────────────
+  /identifiers/{did}:
+    get:
+      operationId: resolveDID
+      summary: Resolve a did:trail DID
+      description: |
+        Returns the DID Resolution Result as defined in the W3C DID Resolution
+        specification, including `didDocument`, `didDocumentMetadata`, and
+        `didResolutionMetadata`.
+
+        Resolving a deactivated DID MUST return HTTP 200 with
+        `didDocumentMetadata.deactivated: true` (§6.4.3).
+
+        **Conformance:** REQUIRED (§6.2)
+      tags:
+        - DID Operations
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/did'
+        - name: versionId
+          in: query
+          required: false
+          description: Return the DID Document as of this ISO 8601 datetime (historical resolution).
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-01T00:00:00Z"
+      responses:
+        '200':
+          description: DID resolved successfully (including deactivated DIDs).
+          content:
+            application/did+ld+json:
+              schema:
+                $ref: '#/components/schemas/DIDResolutionResult'
+              example:
+                "@context": "https://w3id.org/did-resolution/v1"
+                didDocument:
+                  "@context":
+                    - "https://www.w3.org/ns/did/v1"
+                    - "https://trailprotocol.org/ns/trail/v1"
+                  id: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+                  trail:trailTrustTier: 1
+                  verificationMethod:
+                    - id: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1"
+                      type: "JsonWebKey2020"
+                      controller: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+                      publicKeyJwk:
+                        kty: "OKP"
+                        crv: "Ed25519"
+                        x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+                didDocumentMetadata:
+                  created: "2026-03-01T00:00:00Z"
+                  updated: "2026-03-01T00:00:00Z"
+                  deactivated: false
+                  trailCertificationStatus: "active"
+                  trailTrustTier: 1
+                  trailTrustScore:
+                    overall: 0.87
+                    dimensions:
+                      identityVerification: { score: 0.95, weight: 0.25 }
+                      trackRecord: { score: 0.90, weight: 0.25 }
+                      informationProvenance: { score: 0.80, weight: 0.20 }
+                      behavioralConsistency: { score: 0.82, weight: 0.20 }
+                      thirdPartyAttestations: { score: 0.70, weight: 0.10 }
+                    lastComputed: "2026-03-01T00:00:00Z"
+                  nextUpdate: "2026-06-01T00:00:00Z"
+                didResolutionMetadata:
+                  contentType: "application/did+ld+json"
+        '301':
+          description: DID has migrated to a different registry. Follow `Location` header.
+          headers:
+            Location:
+              schema:
+                type: string
+              example: "https://registry.other-operator.eu/1.0/identifiers/did:trail:org:example-gmbh-de-b8c9d0e1"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: DID not found in this registry.
+          content:
+            application/did+ld+json:
+              schema:
+                $ref: '#/components/schemas/DIDResolutionResult'
+              example:
+                didResolutionMetadata:
+                  error: "notFound"
+                  contentType: "application/did+ld+json"
+                didDocument: null
+                didDocumentMetadata: {}
+
+    put:
+      operationId: updateDID
+      summary: Update a did:trail DID Document
+      description: |
+        Replace the current DID Document with an updated version. The DID
+        identifier itself MUST NOT change. The `id` field of the DID Document
+        MUST match the `{did}` path parameter.
+
+        For key rotation, both the old proof (signed with the current key) and
+        the new key material MUST be included (§6.3).
+
+        **Conformance:** REQUIRED (§6.3)
+      tags:
+        - DID Operations
+      security:
+        - DIDAuth: []
+      parameters:
+        - $ref: '#/components/parameters/did'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: DID Document updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Update conflict (concurrent modification). Retry with latest version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      operationId: deactivateDID
+      summary: Deactivate (voluntarily revoke) a did:trail DID
+      description: |
+        Controller-initiated deactivation of the DID (§6.4.1). The DID Document
+        is retained with `deactivated: true` metadata. This action is
+        **irreversible** via the API; reactivation requires manual registry
+        operator review.
+
+        **Conformance:** REQUIRED (§6.4)
+      tags:
+        - DID Operations
+      security:
+        - DIDAuth: []
+      parameters:
+        - $ref: '#/components/parameters/did'
+        - name: X-Trail-Proof
+          in: header
+          required: true
+          description: Signed deactivation proof (Data Integrity Proof over the DID and timestamp).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DID deactivated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  did:
+                    type: string
+                  deactivated:
+                    type: boolean
+                    example: true
+                  deactivationDate:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── 3. Status List (W3C StatusList2021) ──────────────────────────────────
+  /status/{period}:
+    get:
+      operationId: getStatusList
+      security: []
+      summary: Retrieve the signed W3C StatusList2021 credential for a period
+      description: |
+        Returns the registry's signed W3C Status List 2021 Verifiable Credential
+        for the given period (format: `YYYY-MM`). Verifiers poll this endpoint
+        to check revocation status of credentials issued by this registry.
+
+        Per §8.7:
+        - MUST return a valid W3C Status List 2021 VC signed by the registry's
+          own `did:trail:org` key.
+        - MUST use monotonically increasing `statusListVersion` values so
+          verifiers can detect stale caches.
+        - Verifiers SHOULD cache responses for ≤1 hour (consistent with §8.6).
+
+        **Conformance:** REQUIRED (§8.7)
+      tags:
+        - Status
+      parameters:
+        - name: period
+          in: path
+          required: true
+          description: |
+            Revocation period in `YYYY-MM` format. Each period produces one
+            Status List credential covering all credentials issued in that month.
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: "2026-04"
+      responses:
+        '200':
+          description: Signed W3C StatusList2021 Verifiable Credential.
+          headers:
+            Cache-Control:
+              description: Verifiers SHOULD respect max-age ≤ 3600.
+              schema:
+                type: string
+                example: "max-age=3600, must-revalidate"
+          content:
+            application/vc+ld+json:
+              schema:
+                $ref: '#/components/schemas/StatusListCredential'
+              example:
+                "@context":
+                  - "https://www.w3.org/2018/credentials/v1"
+                  - "https://w3id.org/vc/status-list/2021/v1"
+                  - "https://trailprotocol.org/ns/trail/v1"
+                id: "https://registry.trailprotocol.org/1.0/status/2026-04"
+                type:
+                  - "VerifiableCredential"
+                  - "StatusList2021Credential"
+                issuer: "did:trail:org:trail-registry-root-a1b2c3d4e5f6"
+                issued: "2026-04-22T06:00:00Z"
+                statusListVersion: 42
+                credentialSubject:
+                  id: "https://registry.trailprotocol.org/1.0/status/2026-04#list"
+                  type: "StatusList2021"
+                  statusPurpose: "revocation"
+                  encodedList: "H4sIAAAAAAAAA-3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAeAMBAAAA..."
+                proof:
+                  type: "DataIntegrityProof"
+                  cryptosuite: "eddsa-jcs-2023"
+                  created: "2026-04-22T06:00:00Z"
+                  verificationMethod: "did:trail:org:trail-registry-root-a1b2c3d4e5f6#key-1"
+                  proofPurpose: "assertionMethod"
+                  proofValue: "z..."
+        '404':
+          description: No status list for this period (no credentials issued in that month).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── 4. Trust Score Raw Inputs ─────────────────────────────────────────────
+  /trust-score/{did}/inputs:
+    get:
+      operationId: getTrustScoreInputs
+      security: []
+      summary: Retrieve raw trust score inputs for verifier-side recomputation
+      description: |
+        Returns the raw, unweighted input signals used to compute the D1–D5
+        Trust Score dimensions for the given DID (§7.3.4). This endpoint enables
+        independent verifier-side score recomputation and is required to prevent
+        score-laundering across registry boundaries (§8.7).
+
+        The registry MUST NOT return a computed score — only the raw dimension
+        inputs. Verifiers apply the weighting formula from §7.3 locally.
+
+        **Conformance:** REQUIRED (§7.3.4)
+      tags:
+        - Trust Score
+      parameters:
+        - $ref: '#/components/parameters/did'
+      responses:
+        '200':
+          description: Raw trust score inputs for the requested DID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrustScoreInputs'
+              example:
+                did: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+                inputs:
+                  d1_identity:
+                    selfDeclared: true
+                    kybVerified: true
+                    eidasVerified: true
+                    reVerificationCurrent: true
+                  d2_trackRecord:
+                    complaints12m: 2
+                    interactions12m: 15420
+                    periodStart: "2025-03-01T00:00:00Z"
+                    periodEnd: "2026-03-01T00:00:00Z"
+                  d3_provenance:
+                    signedOutputs: 12850
+                    unsignedOutputs: 570
+                    attestationCoverage: 0.958
+                  d4_behavioral:
+                    policyViolations12m: 0
+                    auditsPassed: 3
+                    auditsFailed: 0
+                  d5_attestations:
+                    thirdPartyEndorsements: 4
+                    endorsingDIDs:
+                      - "did:trail:org:auditor-eu-a1b2c3d4"
+                      - "did:trail:org:certbody-de-e5f6a7b8"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── 5. Registry Discovery (well-known) ───────────────────────────────────
+  /.well-known/trail-registry.json:
+    get:
+      operationId: getRegistryManifest
+      security: []
+      summary: Registry well-known manifest
+      description: |
+        Returns the registry's self-description manifest used for registry
+        discovery (§3.3.1). Verifiers and sub-registries use this endpoint to
+        determine federation tier, capabilities, and operational endpoints.
+
+        **Conformance:** REQUIRED (§3.3.1)
+      tags:
+        - Discovery
+      responses:
+        '200':
+          description: Registry manifest.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryManifest'
+              example:
+                registryDID: "did:trail:org:trail-registry-root-a1b2c3d4e5f6"
+                tier: 1
+                apiBase: "https://registry.trailprotocol.org/1.0"
+                statusListEndpoint: "https://registry.trailprotocol.org/1.0/status"
+                trustScoreEndpoint: "https://registry.trailprotocol.org/1.0/trust-score"
+                federationPartners:
+                  - "did:trail:org:partner-registry-eu-b9c0d1e2"
+                supportedCryptosuites:
+                  - "eddsa-jcs-2023"
+                specVersion: "1.2.1"
+                operatorName: "TrailSign AI GmbH"
+                operatorContact: "christian.hommrich@trailsignai.com"
+        '404':
+          description: This server does not expose a TRAIL registry manifest (not a conformant registry).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Components
+# ──────────────────────────────────────────────────────────────────────────────
+components:
+
+  # ── Security Schemes ────────────────────────────────────────────────────
+  securitySchemes:
+    DIDAuth:
+      type: http
+      scheme: DIDAuth
+      description: |
+        RFC 9421 HTTP Message Signature with Ed25519. Three headers required:
+        `Authorization: DIDAuth {did}`, `Signature-Input`, `Signature`.
+        See §6.5.1 of the TRAIL DID Method Specification.
+
+  # ── Parameters ──────────────────────────────────────────────────────────
+  parameters:
+    did:
+      name: did
+      in: path
+      required: true
+      description: A fully qualified `did:trail` DID (URL-encoded if it contains colons beyond the method prefix).
+      schema:
+        type: string
+        pattern: '^did:trail:(org|agent|self):[a-z0-9\-]+-[0-9a-f]{16}$'
+        example: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+
+  # ── Reusable Responses ──────────────────────────────────────────────────
+  responses:
+    BadRequest:
+      description: Malformed request — invalid DID syntax, missing required fields, or unparseable JSON.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "badRequest"
+            message: "DID does not match did:trail ABNF grammar"
+
+    Unauthorized:
+      description: Missing or invalid DID-based authentication (§6.5).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "unauthorized"
+            message: "HTTP Message Signature verification failed"
+
+    Forbidden:
+      description: Authenticated DID is not authorized for this operation (e.g., org DID trying to deactivate another org's DID).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: DID not found in this registry.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "notFound"
+            message: "DID not registered: did:trail:org:unknown-entity-xx-00000000"
+
+  # ── Schemas ─────────────────────────────────────────────────────────────
+  schemas:
+
+    # Registration Request (§6.1)
+    RegistrationRequest:
+      type: object
+      required: [did, didDocument, proof]
+      properties:
+        did:
+          type: string
+          description: The fully qualified `did:trail` DID being registered.
+          example: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a"
+        didDocument:
+          $ref: '#/components/schemas/DIDDocument'
+        proof:
+          $ref: '#/components/schemas/DataIntegrityProof'
+
+    # Registration Certificate — returned on 201
+    RegistrationCertificate:
+      type: object
+      required: [did, status, certificate]
+      properties:
+        did:
+          type: string
+        status:
+          type: string
+          enum: [active, pending-kyb]
+          description: |
+            `active` — DID is immediately usable (agent mode, or org mode with pre-cleared KYB).
+            `pending-kyb` — org mode DID awaiting KYB verification.
+        certificate:
+          type: object
+          description: Signed TRAIL Registration Certificate (Verifiable Credential).
+          properties:
+            "@context":
+              type: array
+              items:
+                type: string
+            type:
+              type: array
+              items:
+                type: string
+            issuer:
+              type: string
+            issuanceDate:
+              type: string
+              format: date-time
+            credentialSubject:
+              type: object
+            proof:
+              $ref: '#/components/schemas/DataIntegrityProof'
+
+    # Update Request (§6.3)
+    UpdateRequest:
+      type: object
+      required: [didDocument, proof]
+      properties:
+        didDocument:
+          $ref: '#/components/schemas/DIDDocument'
+        proof:
+          $ref: '#/components/schemas/DataIntegrityProof'
+        previousProof:
+          $ref: '#/components/schemas/DataIntegrityProof'
+          description: Required for key rotation — proof signed with the key being rotated out.
+
+    # Update Response
+    UpdateResponse:
+      type: object
+      properties:
+        did:
+          type: string
+        updated:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          description: Monotonically increasing version counter for this DID Document.
+
+    # DID Resolution Result (§6.2 / W3C DID Resolution)
+    DIDResolutionResult:
+      type: object
+      properties:
+        "@context":
+          type: string
+          example: "https://w3id.org/did-resolution/v1"
+        didDocument:
+          type: object
+          nullable: true
+          description: The resolved DID Document, or null when the DID is not found.
+        didDocumentMetadata:
+          $ref: '#/components/schemas/DIDDocumentMetadata'
+        didResolutionMetadata:
+          type: object
+          properties:
+            contentType:
+              type: string
+              example: "application/did+ld+json"
+            error:
+              type: string
+              description: W3C DID Resolution error code (present only on error).
+              enum: [invalidDid, notFound, representationNotSupported, internalError]
+
+    # DID Document (§5)
+    DIDDocument:
+      type: object
+      required: ["@context", id, verificationMethod]
+      properties:
+        "@context":
+          type: array
+          items:
+            type: string
+          example:
+            - "https://www.w3.org/ns/did/v1"
+            - "https://trailprotocol.org/ns/trail/v1"
+        id:
+          type: string
+          description: The DID this document represents.
+        trail:trailTrustTier:
+          type: integer
+          enum: [0, 1, 2, 3]
+          description: Trust tier per §3.4.
+        trail:specVersion:
+          type: string
+          description: TRAIL spec version this document conforms to (§8.10).
+          example: "1.2.1"
+        verificationMethod:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VerificationMethod'
+        authentication:
+          type: array
+          items:
+            type: string
+        assertionMethod:
+          type: array
+          items:
+            type: string
+        service:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceEndpoint'
+        alsoKnownAs:
+          type: array
+          items:
+            type: string
+          description: Cross-method bindings per §5.4.
+
+    # DID Document Metadata
+    DIDDocumentMetadata:
+      type: object
+      properties:
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+        deactivated:
+          type: boolean
+          default: false
+        deactivationDate:
+          type: string
+          format: date-time
+        deactivationReason:
+          type: string
+          enum: [voluntary, policy-violation, court-order, regulatory]
+        trailCertificationStatus:
+          type: string
+          enum: [active, pending-kyb, suspended, revoked]
+        trailTrustTier:
+          type: integer
+          enum: [0, 1, 2, 3]
+        trailTrustScore:
+          $ref: '#/components/schemas/TrustScoreSummary'
+        nextUpdate:
+          type: string
+          format: date-time
+
+    # Trust Score Summary (embedded in DID resolution metadata)
+    TrustScoreSummary:
+      type: object
+      required: [overall, dimensions, lastComputed]
+      properties:
+        overall:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Weighted aggregate trust score.
+        dimensions:
+          type: object
+          properties:
+            identityVerification:
+              $ref: '#/components/schemas/ScoreDimension'
+            trackRecord:
+              $ref: '#/components/schemas/ScoreDimension'
+            informationProvenance:
+              $ref: '#/components/schemas/ScoreDimension'
+            behavioralConsistency:
+              $ref: '#/components/schemas/ScoreDimension'
+            thirdPartyAttestations:
+              $ref: '#/components/schemas/ScoreDimension'
+        lastComputed:
+          type: string
+          format: date-time
+
+    ScoreDimension:
+      type: object
+      required: [score, weight]
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        weight:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    # Trust Score Raw Inputs (§7.3.4)
+    TrustScoreInputs:
+      type: object
+      required: [did, inputs]
+      properties:
+        did:
+          type: string
+        inputs:
+          type: object
+          properties:
+            d1_identity:
+              type: object
+              properties:
+                selfDeclared:
+                  type: boolean
+                kybVerified:
+                  type: boolean
+                eidasVerified:
+                  type: boolean
+                reVerificationCurrent:
+                  type: boolean
+            d2_trackRecord:
+              type: object
+              properties:
+                complaints12m:
+                  type: integer
+                  minimum: 0
+                interactions12m:
+                  type: integer
+                  minimum: 0
+                periodStart:
+                  type: string
+                  format: date-time
+                periodEnd:
+                  type: string
+                  format: date-time
+            d3_provenance:
+              type: object
+              properties:
+                signedOutputs:
+                  type: integer
+                  minimum: 0
+                unsignedOutputs:
+                  type: integer
+                  minimum: 0
+                attestationCoverage:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+            d4_behavioral:
+              type: object
+              properties:
+                policyViolations12m:
+                  type: integer
+                  minimum: 0
+                auditsPassed:
+                  type: integer
+                  minimum: 0
+                auditsFailed:
+                  type: integer
+                  minimum: 0
+            d5_attestations:
+              type: object
+              properties:
+                thirdPartyEndorsements:
+                  type: integer
+                  minimum: 0
+                endorsingDIDs:
+                  type: array
+                  items:
+                    type: string
+
+    # W3C StatusList2021 Credential (§8.7)
+    StatusListCredential:
+      type: object
+      required: ["@context", id, type, issuer, issued, credentialSubject, proof]
+      properties:
+        "@context":
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+          format: uri
+          description: Stable URL for this status list (period-scoped).
+        type:
+          type: array
+          items:
+            type: string
+          example: [VerifiableCredential, StatusList2021Credential]
+        issuer:
+          type: string
+          description: The registry's own `did:trail:org` DID.
+        issued:
+          type: string
+          format: date-time
+        statusListVersion:
+          type: integer
+          description: Monotonically increasing version. Verifiers MUST reject versions lower than the last seen value.
+          minimum: 0
+        credentialSubject:
+          type: object
+          required: [id, type, statusPurpose, encodedList]
+          properties:
+            id:
+              type: string
+              format: uri
+            type:
+              type: string
+              example: "StatusList2021"
+            statusPurpose:
+              type: string
+              enum: [revocation, suspension]
+            encodedList:
+              type: string
+              description: GZIP-compressed bitstring, base64url-encoded per W3C StatusList2021 spec.
+        proof:
+          $ref: '#/components/schemas/DataIntegrityProof'
+
+    # Registry Manifest (§3.3.1)
+    RegistryManifest:
+      type: object
+      required: [registryDID, tier, apiBase, statusListEndpoint, trustScoreEndpoint, specVersion]
+      properties:
+        registryDID:
+          type: string
+          description: The `did:trail:org` DID of this registry.
+        tier:
+          type: integer
+          enum: [1, 2]
+          description: Trust tier (§3.4).
+        apiBase:
+          type: string
+          format: uri
+          description: Base URL for this API, including version prefix.
+        statusListEndpoint:
+          type: string
+          format: uri
+          description: Base URL for status list credentials. Append `/{YYYY-MM}` for a specific period.
+        trustScoreEndpoint:
+          type: string
+          format: uri
+          description: Base URL for trust score inputs. Append `/{did}/inputs` for a specific DID.
+        federationPartners:
+          type: array
+          items:
+            type: string
+          description: DIDs of recognized peer registries (mutual recognition per §3.4.2).
+        supportedCryptosuites:
+          type: array
+          items:
+            type: string
+          example: ["eddsa-jcs-2023"]
+        specVersion:
+          type: string
+          description: TRAIL spec version this registry implements.
+          example: "1.2.1"
+        operatorName:
+          type: string
+        operatorContact:
+          type: string
+          format: email
+
+    # Verification Method (§5.2)
+    VerificationMethod:
+      type: object
+      required: [id, type, controller]
+      properties:
+        id:
+          type: string
+          description: Fragment-qualified DID URL (e.g. `did:trail:org:...#key-1`).
+        type:
+          type: string
+          example: "JsonWebKey2020"
+        controller:
+          type: string
+        publicKeyJwk:
+          type: object
+          description: JWK representation of the public key (required if not using multibase).
+          properties:
+            kty:
+              type: string
+              example: "OKP"
+            crv:
+              type: string
+              example: "Ed25519"
+            x:
+              type: string
+        publicKeyMultibase:
+          type: string
+          description: Multibase-encoded public key (alternative to JWK).
+
+    # Service Endpoint (§5.3)
+    ServiceEndpoint:
+      type: object
+      required: [id, type, serviceEndpoint]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - TrailRegistryService
+            - TrailAIPolicyService
+            - LinkedDomains
+        serviceEndpoint:
+          type: string
+          format: uri
+
+    # Data Integrity Proof
+    DataIntegrityProof:
+      type: object
+      required: [type, cryptosuite, created, verificationMethod, proofPurpose, proofValue]
+      properties:
+        type:
+          type: string
+          example: "DataIntegrityProof"
+        cryptosuite:
+          type: string
+          example: "eddsa-jcs-2023"
+        created:
+          type: string
+          format: date-time
+        verificationMethod:
+          type: string
+          description: DID URL referencing the signing key.
+        proofPurpose:
+          type: string
+          enum: [assertionMethod, authentication]
+        proofValue:
+          type: string
+          description: Multibase-encoded signature value.
+
+    # Generic Error
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code.
+          enum:
+            - badRequest
+            - unauthorized
+            - forbidden
+            - notFound
+            - conflict
+            - unprocessableEntity
+            - internalError
+        message:
+          type: string
+          description: Human-readable explanation.
+        details:
+          type: object
+          description: Optional structured error details (e.g., validation failures per field).
