@@ -6,3 +6,6 @@ dist/
 .env.*
 examples/js/node_modules/
 outreach-drafts/
+
+# Spec-Kit integration (may contain auth tokens)
+.claude/
