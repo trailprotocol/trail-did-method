@@ -1,0 +1,56 @@
+name: Public Vocabulary Preflight (Gate 1 server-side)
+
+# Server-side mirror of scripts/preflight-public-commit.sh (Gate 1).
+# Local --no-verify cannot bypass this check.
+# Prerequisite: the hook pattern-set in scripts/preflight-public-commit.sh
+# uses the current public-vocabulary rules (notion-url + UUID matchers).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    name: Block internal vocabulary leaks
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine commit range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            echo "range=${BASE}..${HEAD}" >> $GITHUB_OUTPUT
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              echo "range=${AFTER}~1..${AFTER}" >> $GITHUB_OUTPUT
+            else
+              echo "range=${BEFORE}..${AFTER}" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Run preflight script
+        run: |
+          chmod +x scripts/preflight-public-commit.sh
+          bash scripts/preflight-public-commit.sh "${{ steps.range.outputs.range }}"
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "::error::Internal vocabulary detected in commit range ${{ steps.range.outputs.range }}"
+          echo "::notice::Run scripts/preflight-public-commit.sh locally to debug. Local --no-verify has no effect on this server-side check."
+
+# One-time setup:
+# After the first run: GitHub Settings -> Branches -> main:
+#   - Enable "Require status checks to pass before merging"
+#   - Mark "preflight" as a required status check
+# Once configured, the action automatically blocks PR merges on any leak hit.

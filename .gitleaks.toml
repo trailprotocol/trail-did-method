@@ -1,0 +1,34 @@
+# gitleaks config for trail-did-method
+#
+# Why this exists:
+# This repository contains W3C DID Method specifications and test vectors.
+# Public DID identifiers (did:key, did:trail, did:web) and multibase-encoded
+# Ed25519 public keys are PUBLIC by design — they are resolvable identifiers,
+# not credentials. The default gitleaks ruleset flags them as `generic-api-key`
+# due to high entropy. This file allowlists those specific patterns so the
+# preflight signal stays meaningful for real secrets.
+#
+# Reference: https://www.w3.org/TR/did-core/
+#            https://w3c-ccg.github.io/did-method-key/
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for W3C DID public identifiers and multibase public keys"
+regexes = [
+  # W3C DID identifiers — public by definition
+  '''did:key:[a-zA-Z0-9]+''',
+  '''did:trail:[a-zA-Z0-9]+''',
+  '''did:web:[a-zA-Z0-9._:%-]+''',
+  # Multibase-encoded Ed25519 public keys (z6Mk prefix per did:key spec).
+  # These are signature-verification keys, not signing keys.
+  '''z6Mk[a-zA-Z0-9]{40,}''',
+  # JSON-LD context URLs commonly embedded in DID Documents
+  '''https://w3id\.org/[a-zA-Z0-9/_.-]+''',
+  '''https://www\.w3\.org/[a-zA-Z0-9/_.-]+''',
+]
+
+# If a future spec file ever needs to allowlist additional public identifiers,
+# extend this regexes array. Do NOT add allowlist entries that could match
+# real secrets (private keys, API tokens, signed JWTs, etc.).
