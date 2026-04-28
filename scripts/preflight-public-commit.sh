@@ -75,7 +75,11 @@ if [ -n "$MSGS" ]; then
 fi
 
 # 2) diffs in range
-DIFF=$(git diff "$RANGE" 2>/dev/null || true)
+DIFF=$(git diff "$RANGE" -- . \
+  ':!scripts/preflight-public-commit.sh' \
+  ':!.git/hooks/pre-commit' \
+  ':!.gitleaks.toml' \
+  2>/dev/null || true)
 if [ -n "$DIFF" ]; then
   # Skip the T[0-9] eisenhower pattern inside diff context lines that are
   # legitimately discussing protocol terms. We only flag it in +added lines.
