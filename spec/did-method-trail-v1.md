@@ -3,7 +3,7 @@
 **Version:** 1.2.0-draft
 **Status:** Draft
 **Authors:** Christian Hommrich (TRAIL Protocol Initiative)
-**Contact:** christian.hommrich@gmail.com
+**Contact:** christian.hommrich@trailprotocol.org
 **Repository:** https://github.com/trailprotocol/trail-did-method
 **Date:** 2026-03-04
 **License:** CC BY 4.0
@@ -2041,7 +2041,7 @@ The following JSON file is submitted for inclusion in the [W3C DID Specification
   "verifiableDataRegistry": "TRAIL Registry (https://registry.trailprotocol.org)",
   "specification": "https://trailprotocol.org/specs/did-method-v1",
   "contactName": "Christian Hommrich",
-  "contactEmail": "christian.hommrich@gmail.com",
+  "contactEmail": "christian.hommrich@trailprotocol.org",
   "contactWebsite": "https://trailprotocol.org"
 }
 ```

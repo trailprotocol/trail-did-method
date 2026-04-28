@@ -107,11 +107,11 @@ All governance activities are conducted in the open:
 - **Decisions:** Published as GitHub Issues or in the specification changelog
 - **Meeting notes:** Published within 7 days (when Advisory Board convenes in Phase 2+)
 - **Financial:** Registry fee structures published; no hidden costs
-- **Conflicts of interest:** Board members and the Founding Maintainer must disclose relevant commercial interests. The Founding Maintainer's role as founder of TrailSign AI GmbH (the commercial entity) is disclosed here and in the specification.
+- **Conflicts of interest:** Board members and the Founding Maintainer must disclose relevant commercial interests. The Founding Maintainer's role as founder of TrailSign AI (the commercial entity) is disclosed here and in the specification.
 
-## Relationship to TrailSign AI GmbH
+## Relationship to TrailSign AI
 
-TRAIL Protocol is an open standard. TrailSign AI GmbH (TSAI) is the commercial entity that operates infrastructure and services built on TRAIL. The relationship is analogous to HTTP (open protocol) and web hosting providers (commercial operators).
+TRAIL Protocol is an open standard. TrailSign AI (TSAI) is the commercial entity that operates infrastructure and services built on TRAIL. The relationship is analogous to HTTP (open protocol) and web hosting providers (commercial operators).
 
 **Key boundaries:**
 - The TRAIL specification is licensed under CC BY 4.0 - TSAI does not own the standard

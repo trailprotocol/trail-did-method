@@ -6,7 +6,7 @@ labels: security
 assignees: ''
 ---
 
-**⚠️ For critical vulnerabilities, please email christian.hommrich@gmail.com directly before posting publicly.**
+**⚠️ For critical vulnerabilities, please email christian.hommrich@trailprotocol.org directly before posting publicly.**
 
 ## Affected Component
 

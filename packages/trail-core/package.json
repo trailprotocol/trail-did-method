@@ -21,7 +21,7 @@
     "w3c",
     "verifiable-credentials"
   ],
-  "author": "Christian Hommrich <christian.hommrich@gmail.com>",
+  "author": "Christian Hommrich <christian.hommrich@trailprotocol.org>",
   "license": "MIT",
   "repository": {
     "type": "git",
