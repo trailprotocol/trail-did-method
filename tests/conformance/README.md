@@ -94,12 +94,6 @@ These vectors target spec **v1.2.0** (current draft). If you find a vector that
 disagrees with a published normative statement of the spec, please open an
 issue — the spec is authoritative, the suite is illustrative.
 
-> Known follow-up: Appendix C v1.2.0 shows a truncated/illustrative SHA-256
-> example for the org-mode trail-hash; the actual SHA-256 of the documented
-> hash input begins `bd70674e4dffef6e…`. The vector at
-> `did-creation/valid/02-org-mode-slug-hash.json` uses the actual hash; a spec
-> issue will be filed to align Appendix C.
-
 ## Adding New Vectors
 
 1. Place a new JSON file under the appropriate scope and `valid/` or `invalid/`

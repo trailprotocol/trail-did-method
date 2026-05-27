@@ -2147,9 +2147,9 @@ Output: did:trail:self:z3KMQXnVKR9qMzkJFfoo9WAYb1A7rdUbEkDCwNWTp6uJX
 Input:            "ACME Corporation GmbH"
 Normalized slug:  "acme"
 Hash input:       "acme:z3KMQXnVKR9qMzkJFfoo9WAYb1A7rdUbEkDCwNWTp6uJX"
-SHA-256 (hex):    bd70674e4dff8c3a...
-trail-hash:       "bd70674e4dff8c3a"
-Output DID:       did:trail:org:acme-bd70674e4dff8c3a
+SHA-256 (hex):    bd70674e4dffef6e1a54de8b4b78b9fe140f638dfc5b21a239eb48950cc60758
+trail-hash:       "bd70674e4dffef6e"
+Output DID:       did:trail:org:acme-bd70674e4dffef6e
 ```
 
 ### 14.4 JCS Canonicalization (RFC 8785)

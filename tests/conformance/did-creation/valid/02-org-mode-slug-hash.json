@@ -2,7 +2,7 @@
   "scope": "did-creation",
   "section": "§4.2 org mode + §4.5 normalization",
   "expected": "valid",
-  "description": "Org-mode DID with slug normalization (lowercase, drop legal suffixes) and 16-hex trail-hash suffix derived from SHA-256 of normalized slug + publicKeyMultibase. NOTE: Spec Appendix C v1.2.0 shows truncated hash 'bd70674e4dff8c3a...' which appears to be illustrative; actual SHA-256 of the documented hash input starts with 'bd70674e4dffef6e'. Filed as spec follow-up.",
+  "description": "Org-mode DID with slug normalization (lowercase, drop legal suffixes) and 16-hex trail-hash suffix derived from SHA-256 of normalized slug + publicKeyMultibase. Matches Appendix C §14.3 test vector (Issue #18).",
   "input": {
     "mode": "org",
     "rawName": "ACME Corporation GmbH",
