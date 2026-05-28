@@ -1,11 +1,11 @@
 # did:trail Method Specification
 
-**Version:** 1.2.0-draft
+**Version:** 1.2.1
 **Status:** Draft
 **Authors:** Christian Hommrich (TRAIL Protocol Initiative)
 **Contact:** christian.hommrich@trailprotocol.org
 **Repository:** https://github.com/trailprotocol/trail-did-method
-**Date:** 2026-03-04
+**Date:** 2026-04-22
 **License:** CC BY 4.0
 
 ---
@@ -2237,6 +2237,14 @@ The `OutputAttestationVC` is protocol-agnostic. It can be issued regardless of h
 ---
 
 ## 16. Changelog
+
+### v1.2.1 (2026-04-22)
+
+Editorial patch release. No behavioral change for implementations.
+
+| # | Change | Sections Affected |
+|---|--------|-------------------|
+| 1 | **Aligned trail-hash reference in §6.3 with the normative definition in §4.5.2** — §6.3 (Hash and Key Rotation Semantics) still referenced `[0:12]`, a leftover from v1.1.0-draft before the 48-bit to 64-bit change. The normative definition in §4.5.2 already used `[0:16]` (16 hex characters, 64 bits) correctly. This patch removes the stale reference. | §6.3 |
 
 ### v1.2.0 (2026-04-21)
 
