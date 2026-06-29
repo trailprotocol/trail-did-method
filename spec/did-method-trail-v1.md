@@ -586,6 +586,149 @@ When a verified binding exists, the following rules apply:
 
 **Revocation scope:** Revocation of a `did:trail` DID (§6.4) does NOT automatically revoke bound DIDs from other methods. The bound DID's controller is solely responsible for reflecting the deactivation state in their own DID Document.
 
+#### 5.4.5 BindingProofCredential
+
+The `BindingProofCredential` credential type upgrades the §5.4.2 bidirectionality check from a declared-only `alsoKnownAs` reference to a **cryptographically signed mutual consent** between the two controllers, closing the spoofing risk named in §5.4.4. A verified cross-method binding is established by **two reciprocal unidirectional Verifiable Credentials**, one signed by each controller, mirroring the per-side issuance pattern used by `PlatformIdentityBinding` (§7.5.2) and `AgentDeclaration` (§8.13).
+
+This addition is strictly additive: existing §5.4.2 declared-only bindings remain valid, and verifiers that ignore `BindingProofCredential` produce identical results to those defined prior to this version.
+
+##### 5.4.5.1 Credential Shape
+
+Both legs are stand-alone Verifiable Credentials. Each leg carries its own `eddsa-jcs-2023` Data Integrity proof (§8.2) and its own `StatusList2021Entry` (§8.7) for independent per-side revocation.
+
+**Credential A — the `did:trail` leg** (issued and signed by the `did:trail` controller):
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://trailprotocol.org/ns/credentials/v2"
+  ],
+  "type": ["VerifiableCredential", "BindingProofCredential"],
+  "issuer": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+  "validFrom": "2026-06-15T00:00:00Z",
+  "validUntil": "2027-06-15T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:web:acme-corp.eu:agents:rfq-assistant",
+    "binding": {
+      "from": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+      "to": "did:web:acme-corp.eu:agents:rfq-assistant",
+      "boundAt": "2026-06-15T00:00:00Z"
+    }
+  },
+  "credentialStatus": {
+    "id": "https://registry.trailprotocol.org/1.0/status/2026-06#42",
+    "type": "StatusList2021Entry",
+    "statusPurpose": "revocation",
+    "statusListIndex": "42",
+    "statusListCredential": "https://registry.trailprotocol.org/1.0/status/2026-06"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2023",
+    "created": "2026-06-15T00:00:00Z",
+    "verificationMethod": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z..."
+  }
+}
+```
+
+**Credential B — the reciprocal foreign leg** (issued and signed by the `did:web` controller):
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://trailprotocol.org/ns/credentials/v2"
+  ],
+  "type": ["VerifiableCredential", "BindingProofCredential"],
+  "issuer": "did:web:acme-corp.eu:agents:rfq-assistant",
+  "validFrom": "2026-06-15T00:00:00Z",
+  "validUntil": "2027-06-15T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+    "binding": {
+      "from": "did:web:acme-corp.eu:agents:rfq-assistant",
+      "to": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5",
+      "boundAt": "2026-06-15T00:00:00Z"
+    }
+  },
+  "credentialStatus": {
+    "id": "https://acme-corp.eu/credentials/status/2026-06#7",
+    "type": "StatusList2021Entry",
+    "statusPurpose": "revocation",
+    "statusListIndex": "7",
+    "statusListCredential": "https://acme-corp.eu/credentials/status/2026-06"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2023",
+    "created": "2026-06-15T00:00:00Z",
+    "verificationMethod": "did:web:acme-corp.eu:agents:rfq-assistant#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z..."
+  }
+}
+```
+
+Each credential is outbound from its own issuer's perspective (`from == issuer`, `to == credentialSubject.id`). The **pair** of reciprocal outbound credentials is what establishes cryptographic bidirectionality.
+
+##### 5.4.5.2 Field Definitions
+
+| Field | Requirement | Description |
+|-------|-------------|-------------|
+| `@context` | MUST | `https://www.w3.org/ns/credentials/v2` together with `https://trailprotocol.org/ns/credentials/v2`. The TRAIL v2 credentials context defines the new `BindingProofCredential` term set; `ns/credentials/v1` remains immutable. |
+| `type` | MUST | `["VerifiableCredential", "BindingProofCredential"]`. |
+| `issuer` | MUST | The DID declaring and signing this leg of the binding. For the TRAIL leg, a `did:trail` DID (`org` or `agent`) signing with an `assertionMethod` key. For the foreign leg, the foreign DID. MUST equal `binding.from`. |
+| `validFrom` | MUST | Start of the binding's validity (VC 2.0 property). |
+| `validUntil` | MUST | End of the binding's validity. SHOULD NOT exceed 12 months (consistent with §7.5.2). |
+| `credentialSubject.id` | MUST | The DID being bound *to*. MUST equal `binding.to`. |
+| `binding.from` | MUST | The issuer DID (the side asserting the binding). MUST equal `issuer`. |
+| `binding.to` | MUST | The counterpart DID. MUST equal `credentialSubject.id`. |
+| `binding.boundAt` | MUST | ISO 8601 timestamp at which the issuer attests the binding. Preserved in the credential as a hook for the deferred stricter key-lifecycle check (see §5.4.5.3 step 5 and §8.9). |
+| `credentialStatus` | MUST | `StatusList2021Entry` per §8.7, on the issuer's own status list. Enables independent per-side revocation. |
+| `proof` | MUST | `DataIntegrityProof` with cryptosuite `eddsa-jcs-2023` (§8.2), `proofPurpose: assertionMethod`, signed by an `assertionMethod` key of the issuer DID. |
+
+*Reserved:* `binding.direction` is reserved for a possible future `"inbound"` attestation type and MUST NOT appear in `BindingProofCredential` instances issued under this version of the specification. For outbound credentials its value is fully determined by the `from == issuer` MUST constraint, so it carries no independent information.
+
+##### 5.4.5.3 Verification Algorithm
+
+A verifier MUST treat a cross-method binding as **cryptographically verified** if and only if all of the following hold:
+
+1. Both DID Documents satisfy the existing §5.4.2 bidirectional `alsoKnownAs` check.
+2. A `BindingProofCredential` exists, issued by the `did:trail` controller, with `binding.to` equal to the foreign DID.
+3. A reciprocal `BindingProofCredential` exists, issued by the foreign DID's controller, with `binding.to` equal to the `did:trail` DID.
+4. Both credentials' proofs verify against a verification method in the respective issuer's `assertionMethod` set.
+5. For each credential, the signing key is not revoked at verification time per the issuer's key registry (§8.6, §8.9.2). The stricter "key was in `active` state at `binding.boundAt`" check is **deferred** until the key-lifecycle state machine (`pending → active → retired → revoked`) becomes normative in §8.9; `boundAt` is preserved in the credential so the stricter check can be applied later without re-issuance.
+6. Both credentials are within their `validFrom` / `validUntil` window.
+7. Neither credential is revoked per its `credentialStatus`.
+
+If any of steps (2) through (7) fail, the binding remains **declared but unverified** in the sense of §5.4.2. Implementations MAY continue to accept declared-only bindings at reduced trust, but MUST NOT assign TRAIL trust tier or certification status to bindings lacking cryptographic proof.
+
+##### 5.4.5.4 Limitations
+
+**Consent vs identity assurance (normative).** A verified `BindingProofCredential` pair proves that **both controllers consented** to the binding at a known point in time, signed under independently held assertion keys. It does NOT prove that the two DIDs represent two distinct real-world entities. A single party controlling both DIDs (e.g., one operator holding the signing keys for both a `did:trail:agent:...` and the bound `did:web:...`) can produce a valid reciprocal pair that satisfies every step in §5.4.5.3. `BindingProofCredential` is therefore NOT an anti-Sybil mechanism and MUST NOT be relied on as such. Identity assurance — establishing that the two bound DIDs correspond to two distinct entities under independent control — is a separate concern handled by trust-anchor attestation (§3.4), which is out of scope for this section.
+
+**Foreign-method support.** The cryptographic guarantees of `BindingProofCredential` extend only as far as the foreign DID method supports issuing and signing a Verifiable Credential under an `assertionMethod` key:
+
+| Foreign Method | BindingProof Issuance | Trust Outcome |
+|----------------|----------------------|---------------|
+| `did:web`, `did:key`, `did:ebsi`, `did:ion` | Supported | Cryptographically verified |
+| `did:peer` (without a published assertion key) | Not supported | Declared-only (§5.4.2) |
+| Custom methods lacking a published assertion method | Not supported | Declared-only (§5.4.2) |
+
+Verifiers MUST NOT treat a missing reciprocal `BindingProofCredential` as a verification failure when the foreign method cannot issue one — they MUST instead classify the binding as declared-only and apply the reduced-trust rules of §5.4.2.
+
+##### 5.4.5.5 Composite Invalidation
+
+A previously verified cross-method binding becomes invalidated if any of the following hold at verification time:
+
+1. Either `BindingProofCredential` has a `StatusList2021Entry` indicating revocation.
+2. Either of the two DIDs is deactivated per §6.4.
+3. The current time is outside the `validFrom` / `validUntil` window of either credential.
+4. The signing key of either credential is revoked at verification time per §8.6 / §8.9.2 (per the scoped §5.4.5.3 step 5). The stricter "key was `active` at `boundAt`" condition is reserved for a future revision once §8.9 publishes a normative key-lifecycle state machine.
+
 ---
 
 ## 6. Method Operations
@@ -1670,7 +1813,7 @@ The following items are documented to ensure continuity and enable community fee
 | Item | Description | Priority |
 |------|-------------|----------|
 | Registry API OpenAPI Spec | Formal OpenAPI 3.0 specification for all §6 endpoints (Registration, Resolution, Update, Revoke, Status, Trust Score, Auth). Mandatory for third-party registry implementations. | Critical |
-| BindingProof for §5.4 | Extend Cross-Method Binding with a normative `BindingProofVC` credential type providing cryptographic evidence of mutual `alsoKnownAs` declarations. Closes the current gap where binding is declaration-only. | High |
+| BindingProof for §5.4 | Extend Cross-Method Binding with the normative `BindingProofCredential` type (§5.4.5), providing cryptographic evidence of mutual `alsoKnownAs` declarations via two reciprocal unidirectional VCs. Closes the spoofing gap named in §5.4.4. | High |
 | Trust List JSON Schema | Normative JSON Schema for the §3.4.4 Verifier Trust List format. Required for verifier interoperability across Tier-1 registries. | High |
 | Genesis Issuer Set | Normative definition of the initial Tier-1 Root Registry set and bootstrap mechanism. Required before any production registry deployment. | High |
 | Conformance Test Suite | Test vectors and automated harness for spec-level conformance (DID creation, resolution, revocation, trust score). Prerequisite for Universal Resolver driver and npm publish. | Medium |
@@ -2237,6 +2380,17 @@ The `OutputAttestationVC` is protocol-agnostic. It can be issued regardless of h
 ---
 
 ## 16. Changelog
+
+### v1.3.0-draft (2026-XX-XX)
+
+This release adds normative cryptographic mutual consent to §5.4 Cross-Method Binding via the new `BindingProofCredential` credential type, closing the spoofing risk named in §5.4.4.
+
+| # | Change | Sections Affected |
+|---|--------|-------------------|
+| 1 | **Added `BindingProofCredential` (normative §5.4.5)** — Two reciprocal unidirectional Verifiable Credentials, one signed by each controller, upgrade the §5.4.2 declared-only bidirectionality check to cryptographically signed mutual consent. Uses W3C VC 2.0 context (`https://www.w3.org/ns/credentials/v2`) and the new TRAIL credentials context (`https://trailprotocol.org/ns/credentials/v2`) for the new terms. Signed under `eddsa-jcs-2023` (§8.2) with independent per-side `StatusList2021` revocation (§8.7). Strictly additive: existing §5.4.2 declared-only bindings remain valid; verifiers that ignore `BindingProofCredential` produce identical results to v1.2.x. | §5.4.5 (new) |
+| 2 | **Reconciled roadmap label `BindingProofVC` → `BindingProofCredential`** in the v1.3.0 (planned) entry of §8.12, for W3C-convention consistency with `TrailIdentityCredential`. No behavioural change. | §8.12 |
+
+Authored by Amey Parle. Design discussion: [Issue #21](https://github.com/trailprotocol/trail-did-method/issues/21).
 
 ### v1.2.1 (2026-04-22)
 
