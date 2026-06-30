@@ -1,6 +1,6 @@
 # did:trail Method Specification
 
-**Version:** 1.2.1
+**Version:** 1.3.0-draft
 **Status:** Draft
 **Authors:** Christian Hommrich (TRAIL Protocol Initiative)
 **Contact:** christian.hommrich@trailprotocol.org
@@ -2305,6 +2305,26 @@ SHA-256 (hex): 4c882a71d1796fabe2aa94748f6035c1e7581f984f3785291d403090b36ed208
 
 Note: The JCS output differs from the input in key ordering (`@context` sorts before `id`). The SHA-256 of the JCS output is what gets signed in DataIntegrityProof operations.
 
+### 14.5 Numeric Canonicalization and Integer Constraint
+
+```
+Input (JSON):  {"trail:trailTrustTier":0,"threshold":2}
+JCS output:    {"threshold":2,"trail:trailTrustTier":0}
+SHA-256 (hex): db373549d7bc7aafab4c890b8ef07bff9ef28bc85a21edbcde917c2095168af0
+```
+
+Note: The JCS output reorders keys (`threshold` sorts before `trail:trailTrustTier` by UTF-16 code unit) and serializes each integer with no fractional part. The SHA-256 of the JCS output is what gets signed in DataIntegrityProof operations.
+
+Numeric serialization rules (RFC 8785 Section 3.2.2.3):
+
+- Numbers are serialized using the ES2015 `Number.toString()` algorithm. A value parsed from `1.0` collapses to the integer token `1` (`JSON.parse('{"x":1.0}')` then canonicalize yields `{"x":1}`), and negative zero normalizes to `0` (`{"x":-0}` canonicalizes to `{"x":0}`). `NaN` and `Infinity` are rejected as invalid JSON.
+
+> Normative constraint: TRAIL signed payloads MUST use integer numeric values within the IEEE-754 safe range (≤ 2^53); fractional/exponential numbers are out of scope.
+
+This removes any `1.0`-vs-`1` ambiguity at the source: because the numeric fields that appear in signed payloads (e.g. `threshold`, `trail:trailTrustTier`) are small integers, the canonical byte sequence is deterministic across conforming implementations regardless of their internal number representation.
+
+Verifier roundtrip conformance: A conforming verifier MUST produce identical canonical bytes after a parse/re-serialize roundtrip. Given a signed payload, the sequence `canonicalize → JSON.parse → canonicalize` MUST yield byte-identical output to the original canonicalization, and signature verification MUST still succeed. For the vector above, both the string canonicalization path and the buffer canonicalization path produce SHA-256 `db373549d7bc7aafab4c890b8ef07bff9ef28bc85a21edbcde917c2095168af0`.
+
 ---
 
 ## 15. Appendix D — Artifact Provenance
@@ -2340,7 +2360,7 @@ The `OutputAttestationVC` is a Verifiable Credential that binds a specific AI-ge
   },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2022",
+    "cryptosuite": "eddsa-jcs-2023",
     "verificationMethod": "did:trail:org:acme-corp-a1b2c3d4e5f67890#key-1",
     "created": "2026-04-13T14:30:00Z",
     "proofPurpose": "assertionMethod"
@@ -2389,8 +2409,10 @@ This release adds normative cryptographic mutual consent to §5.4 Cross-Method B
 |---|--------|-------------------|
 | 1 | **Added `BindingProofCredential` (normative §5.4.5)** — Two reciprocal unidirectional Verifiable Credentials, one signed by each controller, upgrade the §5.4.2 declared-only bidirectionality check to cryptographically signed mutual consent. Uses W3C VC 2.0 context (`https://www.w3.org/ns/credentials/v2`) and the new TRAIL credentials context (`https://trailprotocol.org/ns/credentials/v2`) for the new terms. Signed under `eddsa-jcs-2023` (§8.2) with independent per-side `StatusList2021` revocation (§8.7). Strictly additive: existing §5.4.2 declared-only bindings remain valid; verifiers that ignore `BindingProofCredential` produce identical results to v1.2.x. | §5.4.5 (new) |
 | 2 | **Reconciled roadmap label `BindingProofVC` → `BindingProofCredential`** in the v1.3.0 (planned) entry of §8.12, for W3C-convention consistency with `TrailIdentityCredential`. No behavioural change. | §8.12 |
+| 3 | **Added §14.5 Numeric Canonicalization and Integer Constraint** — numeric JCS (RFC 8785) test vector with computed SHA-256, the `1.0`→`1` / `-0`→`0` serialization rules, a normative integer-only constraint for signed payloads (IEEE-754 safe range, ≤ 2^53), and a verifier parse/re-serialize roundtrip conformance requirement. Closes the missing numeric test vector in §14.4. | §14.5 (new) |
+| 4 | **Aligned §15 example cryptosuite** `eddsa-jcs-2022` → `eddsa-jcs-2023` to match §8.2, §14, and the implementation default. Example-only fix, no normative change. | §15 |
 
-Authored by Amey Parle. Design discussion: [Issue #21](https://github.com/trailprotocol/trail-did-method/issues/21).
+Authored by Amey Parle (§5.4.5 BindingProofCredential, rows 1–2). Editorial hardening rows 3–4 (§14.5 numeric vector, §15 alignment) by the maintainer. Design discussion: [Issue #21](https://github.com/trailprotocol/trail-did-method/issues/21).
 
 ### v1.2.1 (2026-04-22)
 
