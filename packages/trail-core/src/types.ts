@@ -30,6 +30,7 @@ export interface DidDocument {
   '@context': string[];
   id: string;
   controller?: string;
+  alsoKnownAs?: string[];
   verificationMethod: VerificationMethod[];
   authentication: string[];
   assertionMethod: string[];
@@ -87,11 +88,70 @@ export const SUPPORTED_CRYPTOSUITES: ReadonlyArray<{
   },
 ];
 
+/**
+ * StatusList2021Entry — credentialStatus entry per W3C VC Status List 2021.
+ * Used for per-credential revocation. See spec §8.7.
+ */
+export interface StatusList2021Entry {
+  id: string;
+  type: 'StatusList2021Entry';
+  statusPurpose: string;
+  statusListIndex: string;
+  statusListCredential: string;
+}
+
 export interface VerifiableCredential {
   '@context': string[];
   type: string[];
   issuer: string;
-  issuanceDate: string;
+  /**
+   * VC 1.1 issuance date. Present on TrailIdentityCredential and other
+   * VC 1.1-context credentials. Optional so VC 2.0 credentials
+   * (validFrom/validUntil) can omit it.
+   */
+  issuanceDate?: string;
+  /** VC 2.0 validity start (RFC 3339). */
+  validFrom?: string;
+  /** VC 2.0 validity end (RFC 3339). */
+  validUntil?: string;
   credentialSubject: Record<string, unknown>;
+  /** Revocation status entry (StatusList2021 per §8.7). */
+  credentialStatus?: StatusList2021Entry;
   proof?: DataIntegrityProof;
+}
+
+/**
+ * The signed `binding` object inside a BindingProofCredential's
+ * credentialSubject. See spec §5.4.5.
+ *
+ * `from` MUST equal the credential's `issuer`.
+ * `to`   MUST equal the credential's `credentialSubject.id`.
+ * `direction` is intentionally absent — reserved for a future "inbound"
+ * attestation type and fully determined by `from == issuer` for the
+ * outbound case (§5.4.5.2).
+ */
+export interface BindingProofBinding {
+  from: string;
+  to: string;
+  boundAt: string;
+}
+
+/**
+ * BindingProofCredential — one leg of a reciprocal cross-method binding.
+ * A verified binding requires two of these, one signed by each controller,
+ * each outbound from its own issuer's perspective. See spec §5.4.5.
+ *
+ * This is a structural refinement of VerifiableCredential: it fixes the
+ * VC 2.0 context/validity shape and requires credentialStatus + a
+ * credentialSubject carrying { id, binding }.
+ */
+export interface BindingProofCredential extends VerifiableCredential {
+  validFrom: string;
+  validUntil: string;
+  credentialStatus: StatusList2021Entry;
+  credentialSubject: {
+    id: string;
+    binding: BindingProofBinding;
+    [key: string]: unknown;
+  };
 }

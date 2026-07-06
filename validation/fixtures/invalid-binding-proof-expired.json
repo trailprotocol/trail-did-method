@@ -1,0 +1,158 @@
+{
+  "_comment": "Trail leg validUntil (2026-06-16) is before the verificationTime (2026-09-01). Signature is VALID (window baked in before signing) — fails ONLY §5.4.5.3 step 6.",
+  "trailPublicKeyBase64": "CPzeiXgxtqFas7yzpE33m639hEBvQJn3WTh/C/VgAGY=",
+  "foreignPublicKeyBase64": "I0VvrjTfwzzncAM6IJOcyKfCrLQXxvwPaTQpVhWsyt4=",
+  "verificationTime": "2026-09-01T00:00:00Z",
+  "trailDidDocument": {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+      "https://trailprotocol.org/ns/did/v1"
+    ],
+    "id": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+    "verificationMethod": [
+      {
+        "id": "did:trail:org:acme-corp-eu-570cb6cc823ad59e#key-1",
+        "type": "JsonWebKey2020",
+        "controller": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+        "publicKeyJwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "CPzeiXgxtqFas7yzpE33m639hEBvQJn3WTh_C_VgAGY"
+        }
+      }
+    ],
+    "authentication": [
+      "did:trail:org:acme-corp-eu-570cb6cc823ad59e#key-1"
+    ],
+    "assertionMethod": [
+      "did:trail:org:acme-corp-eu-570cb6cc823ad59e#key-1"
+    ],
+    "trail:trailMode": "org",
+    "trail:supportedCryptosuites": [
+      "eddsa-jcs-2023"
+    ],
+    "trail:specVersion": "1.1.0",
+    "service": [
+      {
+        "id": "did:trail:org:acme-corp-eu-570cb6cc823ad59e#trail-registry",
+        "type": "TrailRegistryService",
+        "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:org:acme-corp-eu-570cb6cc823ad59e"
+      }
+    ],
+    "alsoKnownAs": [
+      "did:trail:org:acme-web-agent-0eb4f15ccf199e0f"
+    ]
+  },
+  "foreignDidDocument": {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+      "https://trailprotocol.org/ns/did/v1"
+    ],
+    "id": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+    "verificationMethod": [
+      {
+        "id": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f#key-1",
+        "type": "JsonWebKey2020",
+        "controller": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+        "publicKeyJwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "I0VvrjTfwzzncAM6IJOcyKfCrLQXxvwPaTQpVhWsyt4"
+        }
+      }
+    ],
+    "authentication": [
+      "did:trail:org:acme-web-agent-0eb4f15ccf199e0f#key-1"
+    ],
+    "assertionMethod": [
+      "did:trail:org:acme-web-agent-0eb4f15ccf199e0f#key-1"
+    ],
+    "trail:trailMode": "org",
+    "trail:supportedCryptosuites": [
+      "eddsa-jcs-2023"
+    ],
+    "trail:specVersion": "1.1.0",
+    "service": [
+      {
+        "id": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f#trail-registry",
+        "type": "TrailRegistryService",
+        "serviceEndpoint": "https://registry.trailprotocol.org/1.0/identifiers/did:trail:org:acme-web-agent-0eb4f15ccf199e0f"
+      }
+    ],
+    "alsoKnownAs": [
+      "did:trail:org:acme-corp-eu-570cb6cc823ad59e"
+    ]
+  },
+  "trailCredential": {
+    "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://trailprotocol.org/ns/credentials/v2"
+    ],
+    "type": [
+      "VerifiableCredential",
+      "BindingProofCredential"
+    ],
+    "issuer": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+    "validFrom": "2026-06-15T00:00:00Z",
+    "validUntil": "2026-06-16T00:00:00Z",
+    "credentialSubject": {
+      "id": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+      "binding": {
+        "from": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+        "to": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+        "boundAt": "2026-06-15T00:00:00Z"
+      }
+    },
+    "credentialStatus": {
+      "id": "https://registry.trailprotocol.org/1.0/status/2026-06#42",
+      "type": "StatusList2021Entry",
+      "statusPurpose": "revocation",
+      "statusListIndex": "42",
+      "statusListCredential": "https://registry.trailprotocol.org/1.0/status/2026-06"
+    },
+    "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2023",
+      "created": "2026-07-01T20:39:53.306Z",
+      "verificationMethod": "did:trail:org:acme-corp-eu-570cb6cc823ad59e#key-1",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "zkLZRezzPhiipwzJvwVQyGG2LuWKoLFa5KuUWMCXM7VU8HFASP7SR5NBbBHFjviT9CakCWivqYoVgpfycNnv7jzU"
+    }
+  },
+  "foreignCredential": {
+    "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://trailprotocol.org/ns/credentials/v2"
+    ],
+    "type": [
+      "VerifiableCredential",
+      "BindingProofCredential"
+    ],
+    "issuer": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+    "validFrom": "2026-06-15T00:00:00Z",
+    "validUntil": "2027-06-15T00:00:00Z",
+    "credentialSubject": {
+      "id": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+      "binding": {
+        "from": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f",
+        "to": "did:trail:org:acme-corp-eu-570cb6cc823ad59e",
+        "boundAt": "2026-06-15T00:00:00Z"
+      }
+    },
+    "credentialStatus": {
+      "id": "https://acme-corp.eu/credentials/status/2026-06#7",
+      "type": "StatusList2021Entry",
+      "statusPurpose": "revocation",
+      "statusListIndex": "7",
+      "statusListCredential": "https://acme-corp.eu/credentials/status/2026-06"
+    },
+    "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2023",
+      "created": "2026-07-01T20:39:53.307Z",
+      "verificationMethod": "did:trail:org:acme-web-agent-0eb4f15ccf199e0f#key-1",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "z5xNLhoakgW2CRvzr85UL4rdHc2cnyosZZgLozAvJ43neBE6orNoX8tgZnb6t54tyz2Wdz3zNiHP5CqYtu3JSDtFe"
+    }
+  }
+}

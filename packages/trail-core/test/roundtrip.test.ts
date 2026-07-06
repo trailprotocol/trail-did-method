@@ -6,7 +6,9 @@ import { createDidDocument, rotateKey, SPEC_VERSION } from '../src/document';
 import { TrailResolver } from '../src/resolver';
 import { createProof, verifyProof, isSupportedCryptosuite, DEFAULT_CRYPTOSUITE } from '../src/proof';
 import { SUPPORTED_CRYPTOSUITES } from '../src/types';
-import { createSelfSignedCredential, verifyCredential } from '../src/credential';
+import { createSelfSignedCredential, verifyCredential, createBindingProofCredential, verifyBindingProof } from '../src/credential';
+import type { VerifyBindingProofInput } from '../src/credential';
+import type { DidDocument, StatusList2021Entry } from '../src/types';
 import { encode, decode, encodeMultibase, decodeMultibase } from '../src/base58';
 import { jcsCanonicalizeToString } from '../src/jcs';
 
@@ -580,5 +582,206 @@ describe('Key Rotation', () => {
     // Old key proofs still verify against old key
     const oldProof = createProof(testDoc, keys1.privateKeyBytes, `${did}#key-1`);
     assert.ok(verifyProof(testDoc, oldProof, keys1.publicKeyBytes));
+  });
+});
+
+describe('BindingProofCredential (§5.4.5)', () => {
+  // Helper: build a full valid reciprocal pair + both DID Documents + keys,
+  // so each test can mutate one thing and assert the failure.
+  function buildValidBinding() {
+    const trailKeys = generateKeyPair();
+    const foreignKeys = generateKeyPair();
+
+    // Use org DIDs for both legs (foreign leg simulated with a second trail DID
+    // is fine for the crypto — the function is method-agnostic on the foreign side).
+    const trailDid = createOrgDid('Binding Trail Co', trailKeys.publicKeyMultibase);
+    const foreignDid = createOrgDid('Binding Foreign Co', foreignKeys.publicKeyMultibase);
+
+    const trailStatus: StatusList2021Entry = {
+      id: 'https://registry.trailprotocol.org/1.0/status/2026-06#42',
+      type: 'StatusList2021Entry',
+      statusPurpose: 'revocation',
+      statusListIndex: '42',
+      statusListCredential: 'https://registry.trailprotocol.org/1.0/status/2026-06',
+    };
+    const foreignStatus: StatusList2021Entry = {
+      id: 'https://foreign.example/status/2026-06#7',
+      type: 'StatusList2021Entry',
+      statusPurpose: 'revocation',
+      statusListIndex: '7',
+      statusListCredential: 'https://foreign.example/status/2026-06',
+    };
+
+    const validFrom = '2026-06-15T00:00:00Z';
+    const validUntil = '2027-06-15T00:00:00Z';
+
+    const trailCredential = createBindingProofCredential({
+      issuerDid: trailDid,
+      subjectDid: foreignDid,
+      privateKeyBytes: trailKeys.privateKeyBytes,
+      credentialStatus: trailStatus,
+      validFrom,
+      validUntil,
+    });
+    const foreignCredential = createBindingProofCredential({
+      issuerDid: foreignDid,
+      subjectDid: trailDid,
+      privateKeyBytes: foreignKeys.privateKeyBytes,
+      credentialStatus: foreignStatus,
+      validFrom,
+      validUntil,
+    });
+
+    // DID Documents WITH reciprocal alsoKnownAs (step 1 precondition).
+    const trailDidDocument: DidDocument = {
+      ...createDidDocument(trailDid, trailKeys, { mode: 'org' }),
+      alsoKnownAs: [foreignDid],
+    };
+    const foreignDidDocument: DidDocument = {
+      ...createDidDocument(foreignDid, foreignKeys, { mode: 'org' }),
+      alsoKnownAs: [trailDid],
+    };
+
+    const input: VerifyBindingProofInput = {
+      trailCredential,
+      foreignCredential,
+      trailDidDocument,
+      foreignDidDocument,
+      trailPublicKeyBytes: trailKeys.publicKeyBytes,
+      foreignPublicKeyBytes: foreignKeys.publicKeyBytes,
+      revocation: { trailCredentialRevoked: false, foreignCredentialRevoked: false },
+      now: '2026-09-01T00:00:00Z',
+    };
+
+    return { input, trailKeys, foreignKeys, trailDid, foreignDid };
+  }
+
+  it('createBindingProofCredential produces a correctly-shaped outbound leg', () => {
+    const { input, trailDid, foreignDid } = buildValidBinding();
+    const c = input.trailCredential;
+    assert.deepStrictEqual(c['@context'], [
+      'https://www.w3.org/ns/credentials/v2',
+      'https://trailprotocol.org/ns/credentials/v2',
+    ]);
+    assert.deepStrictEqual(c.type, ['VerifiableCredential', 'BindingProofCredential']);
+    assert.strictEqual(c.issuer, trailDid);
+    assert.strictEqual(c.credentialSubject.id, foreignDid);
+    assert.strictEqual(c.credentialSubject.binding.from, trailDid);
+    assert.strictEqual(c.credentialSubject.binding.to, foreignDid);
+    // direction MUST NOT be present
+    assert.strictEqual(
+      Object.prototype.hasOwnProperty.call(c.credentialSubject.binding, 'direction'),
+      false
+    );
+    assert.ok(c.proof, 'leg must carry a proof');
+  });
+
+  it('boundAt defaults to validFrom when omitted', () => {
+    const { input } = buildValidBinding();
+    assert.strictEqual(
+      input.trailCredential.credentialSubject.binding.boundAt,
+      input.trailCredential.validFrom
+    );
+  });
+
+  it('verifies a complete valid reciprocal pair', () => {
+    const { input } = buildValidBinding();
+    const result = verifyBindingProof(input);
+    assert.deepStrictEqual(result.errors, []);
+    assert.strictEqual(result.verified, true);
+  });
+
+  it('fails when the trail leg has a tampered signature (step 4)', () => {
+    const { input } = buildValidBinding();
+    // Mutate credentialSubject after signing → JCS digest no longer matches proof.
+    input.trailCredential.credentialSubject.binding.boundAt = '2099-01-01T00:00:00Z';
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 4')));
+  });
+
+  it('fails when the reciprocal back-reference is missing (step 1)', () => {
+    const { input } = buildValidBinding();
+    input.foreignDidDocument.alsoKnownAs = []; // drop the back-reference
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 1')));
+  });
+
+  it('fails when a credential is expired (step 6)', () => {
+    const { input } = buildValidBinding();
+    input.now = '2030-01-01T00:00:00Z'; // past validUntil
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 6')));
+  });
+
+  it('fails when a credential is revoked via credentialStatus (step 7)', () => {
+    const { input } = buildValidBinding();
+    input.revocation.foreignCredentialRevoked = true;
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 7')));
+  });
+
+  it('fails when the signing key is revoked at verification time (step 5)', () => {
+    const { input } = buildValidBinding();
+    input.keyRevocation = { trailSigningKeyRevoked: true, foreignSigningKeyRevoked: false };
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 5')));
+  });
+
+  it('fails when binding.to does not match the counterpart DID (step 2)', () => {
+    const { input } = buildValidBinding();
+    // Re-point the trail leg's binding.to at a bogus DID (breaks orientation).
+    input.trailCredential.credentialSubject.binding.to = 'did:trail:org:not-the-foreign-did-0000000000000000';
+    input.trailCredential.credentialSubject.id = 'did:trail:org:not-the-foreign-did-0000000000000000';
+    const result = verifyBindingProof(input);
+    assert.strictEqual(result.verified, false);
+    assert.ok(result.errors.some(e => e.includes('Step 2')));
+  });
+
+  it('a single-party pair still verifies (documents the consent≠identity limitation, §5.4.5.4)', () => {
+    // One key controls both legs: valid pair, but proves consent not distinctness.
+    const soleKeys = generateKeyPair();
+    const didA = createOrgDid('Sole Controller A', soleKeys.publicKeyMultibase);
+    // Second DID from a different slug but SAME key material — a single party.
+    const didB = createOrgDid('Sole Controller B', soleKeys.publicKeyMultibase);
+
+    const status = (idx: string): StatusList2021Entry => ({
+      id: `https://registry.trailprotocol.org/1.0/status/2026-06#${idx}`,
+      type: 'StatusList2021Entry',
+      statusPurpose: 'revocation',
+      statusListIndex: idx,
+      statusListCredential: 'https://registry.trailprotocol.org/1.0/status/2026-06',
+    });
+
+    const validFrom = '2026-06-15T00:00:00Z';
+    const validUntil = '2027-06-15T00:00:00Z';
+
+    const legA = createBindingProofCredential({
+      issuerDid: didA, subjectDid: didB, privateKeyBytes: soleKeys.privateKeyBytes,
+      credentialStatus: status('1'), validFrom, validUntil,
+    });
+    const legB = createBindingProofCredential({
+      issuerDid: didB, subjectDid: didA, privateKeyBytes: soleKeys.privateKeyBytes,
+      credentialStatus: status('2'), validFrom, validUntil,
+    });
+
+    const docA: DidDocument = { ...createDidDocument(didA, soleKeys, { mode: 'org' }), alsoKnownAs: [didB] };
+    const docB: DidDocument = { ...createDidDocument(didB, soleKeys, { mode: 'org' }), alsoKnownAs: [didA] };
+
+    const result = verifyBindingProof({
+      trailCredential: legA, foreignCredential: legB,
+      trailDidDocument: docA, foreignDidDocument: docB,
+      trailPublicKeyBytes: soleKeys.publicKeyBytes,
+      foreignPublicKeyBytes: soleKeys.publicKeyBytes,
+      revocation: { trailCredentialRevoked: false, foreignCredentialRevoked: false },
+      now: '2026-09-01T00:00:00Z',
+    });
+
+    // Cryptographically verified — this is exactly the §5.4.5.4 limitation.
+    assert.strictEqual(result.verified, true);
   });
 });

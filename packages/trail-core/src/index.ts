@@ -7,7 +7,8 @@ export { createSelfDid, createOrgDid, createAgentDid, parseTrailDid, normalizeSl
 export { createDidDocument, rotateKey, SPEC_VERSION } from './document';
 export { TrailResolver, extractPublicKeyFromSelfDid } from './resolver';
 export { createProof, verifyProof, isSupportedCryptosuite, DEFAULT_CRYPTOSUITE } from './proof';
-export { createSelfSignedCredential, verifyCredential } from './credential';
+export { createSelfSignedCredential, verifyCredential, createBindingProofCredential, verifyBindingProof } from './credential';
+export type { CreateBindingProofOptions, VerifyBindingProofInput, BindingProofVerificationResult, VerificationResult } from './credential';
 export { encodeMultibase, decodeMultibase } from './base58';
 export { jcsCanonicalizeToString, jcsCanonicalizeToBuffer } from './jcs';
 
@@ -20,6 +21,9 @@ export type {
   ServiceEndpoint,
   DataIntegrityProof,
   VerifiableCredential,
+  BindingProofCredential,
+  BindingProofBinding,
+  StatusList2021Entry,
   RecoveryPolicy,
   SupportedCryptosuite,
 } from './types';
