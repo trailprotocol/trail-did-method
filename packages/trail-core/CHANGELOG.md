@@ -4,6 +4,24 @@ All notable changes to `@trailprotocol/core` are documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- `createProof` now enforces the §14.5 numeric constraint: a document containing
+  fractional values, values outside the IEEE-754 safe integer range, or
+  non-finite values is rejected with a `RangeError` naming the offending field.
+  Enforcement sits in `proof.ts`, at the point the payload is assembled for
+  signing — `jcs.ts` remains a faithful RFC 8785 implementation, which matters
+  now that §14.5 is deliberately stricter than 8785.
+
+  Sign-side only. `verifyProof` is unchanged and continues to accept
+  previously-issued payloads; enforcing on the verify path would be a
+  compatibility break. Scoped to the document rather than the proof
+  configuration, which is entirely strings.
+
+  Callers signing documents that carry fractional numerics — trust scores prior
+  to the 0–100 integer representation, for instance — will now receive an error
+  where signing previously succeeded.
+
 ### Fixed
 
 - Regenerated the six `BindingProof` test vectors in `validation/fixtures/`
@@ -19,8 +37,8 @@ All notable changes to `@trailprotocol/core` are documented in this file.
   asserting `verified === false` would have passed on the stale vectors.
   Suite goes 67 → 73 tests.
 
-Fixtures and tests only; nothing shipped in `dist/` changed. Contributed by
-Amey Parle in [#26](https://github.com/trailprotocol/trail-did-method/pull/26).
+The two entries above are fixtures and tests only; nothing shipped in `dist/`
+changed. Contributed by Amey Parle in [#26](https://github.com/trailprotocol/trail-did-method/pull/26).
 
 ## 0.3.0
 
