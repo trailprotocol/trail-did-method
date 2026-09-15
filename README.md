@@ -252,9 +252,7 @@ We welcome critique, co-maintainers, and interoperability proposals from both co
 
 ## W3C Registry Status
 
-`did:trail` is **registered** in the [W3C DID Extensions Registry](https://github.com/w3c/did-extensions) — PR [#669](https://github.com/w3c/did-extensions/pull/669) merged. The entry is listed with `provisional` status.
-
-Registration means the method name is recorded in the W3C-maintained catalog of DID methods. It is not a W3C standards-track endorsement.
+`did:trail` is **registered** in the [W3C DID Extensions Registry](https://github.com/w3c/did-extensions/blob/main/methods/trail.json) — PR [#669](https://github.com/w3c/did-extensions/pull/669) merged.
 
 ---
 
