@@ -1,9 +1,9 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, sign as nodeSign } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { generateKeyPair } from '../src/keygen';
+import { generateKeyPair, createPrivateKeyObject } from '../src/keygen';
 import { createSelfDid, createOrgDid, createAgentDid, parseTrailDid } from '../src/did';
 import { createDidDocument, rotateKey, SPEC_VERSION } from '../src/document';
 import { TrailResolver } from '../src/resolver';
@@ -967,4 +967,96 @@ describe('Signed test vectors (validation/fixtures)', () => {
       );
     });
   }
+});
+
+describe('§14.5 numeric constraint (sign-side enforcement)', () => {
+  const keys = generateKeyPair();
+  const did = createSelfDid(keys.publicKeyMultibase);
+  const vm = `${did}#key-1`;
+
+  const sign = (doc: object) => createProof(doc, keys.privateKeyBytes, vm);
+
+  it('accepts safe-range integers, including 0, negatives, and MAX_SAFE_INTEGER', () => {
+    const doc = {
+      id: did,
+      tier: 0,
+      offset: -42,
+      max: Number.MAX_SAFE_INTEGER,
+      min: -Number.MAX_SAFE_INTEGER,
+      nested: { scores: [100, 0, 87] },
+    };
+    const proof = sign(doc);
+    assert.ok(proof.proofValue);
+    assert.strictEqual(verifyProof(doc, proof, keys.publicKeyBytes), true);
+  });
+
+  it('rejects a fractional value and names the field', () => {
+    assert.throws(
+      () => sign({ id: did, trustScore: { overall: 0.87 } }),
+      (err: unknown) => {
+        assert.ok(err instanceof RangeError);
+        assert.match(err.message, /§14\.5/);
+        assert.match(err.message, /fractional/);
+        assert.match(err.message, /trustScore\.overall/);
+        return true;
+      }
+    );
+  });
+
+  it('rejects a value outside the safe integer range', () => {
+    assert.throws(
+      () => sign({ id: did, counter: 2 ** 53 }),
+      (err: unknown) => {
+        assert.ok(err instanceof RangeError);
+        assert.match(err.message, /safe integer range/);
+        return true;
+      }
+    );
+  });
+
+  it('rejects NaN and Infinity with a §14.5 message', () => {
+    assert.throws(() => sign({ id: did, x: NaN }), /§14\.5.*non-finite/);
+    assert.throws(() => sign({ id: did, x: Infinity }), /§14\.5.*non-finite/);
+  });
+
+  it('walks arrays and reports the index', () => {
+    assert.throws(
+      () => sign({ id: did, weights: [25, 25, 20.5] }),
+      /weights\[2\]/
+    );
+  });
+
+  it('skips the proof block when re-signing a proof-bearing document', () => {
+    // The proof config is all strings, so it is out of scope for §14.5 — but a
+    // document passed back in for re-signing still carries its old proof, and
+    // that must not trip the guard.
+    const doc: Record<string, unknown> = { id: did, tier: 1 };
+    doc['proof'] = sign(doc);
+    assert.doesNotThrow(() => sign(doc));
+  });
+
+  it('does not enforce on the verify path (sign-side only)', () => {
+    // A float-bearing payload can no longer be produced by createProof, so the
+    // signature is constructed here the same way computeHashData does it:
+    //   hashData = sha256(JCS(proofConfig)) || sha256(JCS(document))
+    // verifyProof must still accept it — enforcing on verify would reject
+    // previously-issued payloads, which is the compatibility break we deferred.
+    const doc = { id: did, legacyScore: 0.87 };
+    const proofConfig = {
+      type: 'DataIntegrityProof' as const,
+      cryptosuite: DEFAULT_CRYPTOSUITE,
+      created: '2026-01-01T00:00:00.000Z',
+      verificationMethod: vm,
+      proofPurpose: 'assertionMethod',
+    };
+
+    const hashData = Buffer.concat([
+      createHash('sha256').update(jcsCanonicalizeToBuffer(proofConfig)).digest(),
+      createHash('sha256').update(jcsCanonicalizeToBuffer(doc)).digest(),
+    ]);
+    const signature = nodeSign(null, hashData, createPrivateKeyObject(keys.privateKeyBytes));
+    const proof = { ...proofConfig, proofValue: encodeMultibase(new Uint8Array(signature)) };
+
+    assert.strictEqual(verifyProof(doc, proof, keys.publicKeyBytes), true);
+  });
 });

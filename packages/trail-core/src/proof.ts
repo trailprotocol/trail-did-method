@@ -22,6 +22,75 @@ function sha256(data: Buffer): Buffer {
 }
 
 /**
+ * Recursively assert that every numeric value is a safe-range integer, per the
+ * §14.5 normative constraint:
+ *
+ *   "TRAIL signed payloads MUST use integer numeric values within the IEEE-754
+ *    safe integer range (|n| <= 2^53 - 1). Fractional and exponential numbers
+ *    MUST NOT appear in a payload that is canonicalized for signing."
+ *
+ * The constraint governs which *values* may be signed, not how canonicalization
+ * serializes them — `jcs.ts` remains a faithful RFC 8785 implementation, which
+ * matters now that §14.5 is deliberately stricter than 8785.
+ *
+ * Exponential notation needs no separate check: ES2015 `Number.toString()` only
+ * emits it for magnitudes at or above 1e21 (or for fractional values), and both
+ * are already rejected by the safe-range and integer checks respectively.
+ *
+ * `path` is threaded through so the error names the offending field rather than
+ * leaving the caller to hunt for it.
+ */
+function assertSignableNumerics(value: unknown, path: string): void {
+  if (typeof value === 'number') {
+    const at = path || '(root)';
+    if (!Number.isFinite(value)) {
+      throw new RangeError(
+        `§14.5: non-finite number at "${at}"; NaN and Infinity are not valid JSON`
+      );
+    }
+    if (!Number.isInteger(value)) {
+      throw new RangeError(
+        `§14.5: fractional number ${value} at "${at}"; signed payloads must use integer values`
+      );
+    }
+    if (!Number.isSafeInteger(value)) {
+      throw new RangeError(
+        `§14.5: ${value} at "${at}" is outside the IEEE-754 safe integer range (|n| <= 2^53 - 1)`
+      );
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, i) => assertSignableNumerics(item, `${path}[${i}]`));
+    return;
+  }
+
+  if (value !== null && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      assertSignableNumerics(child, path ? `${path}.${key}` : key);
+    }
+  }
+}
+
+/**
+ * Enforce §14.5 over a document about to be signed.
+ *
+ * Scoped to the document, deliberately: the proof configuration is entirely
+ * strings, so validating it would be surface without benefit.
+ *
+ * Sign-side only. `verifyProof` does not call this — enforcing on the verify
+ * path would reject previously-issued payloads, which is a compatibility break
+ * in principle, and 0.3.0 already spent one this cycle.
+ */
+function assertSignableDocument(document: object): void {
+  for (const [key, value] of Object.entries(document as Record<string, unknown>)) {
+    if (key === 'proof') continue;
+    assertSignableNumerics(value, key);
+  }
+}
+
+/**
  * Compute the "hash data" that gets signed (createProof) / re-derived
  * (verifyProof) for the eddsa-jcs-2023 cryptosuite.
  *
@@ -86,6 +155,11 @@ export function createProof(
       `Supported: ${SUPPORTED_CRYPTOSUITES.filter(s => s.status === 'active').map(s => s.id).join(', ')}`
     );
   }
+
+  // §14.5: signed payloads carry safe-range integers only. Enforced here, at
+  // the point the payload is assembled for signing, rather than inside
+  // canonicalization — see the note on assertSignableDocument.
+  assertSignableDocument(document);
 
   const proofConfig: Omit<DataIntegrityProof, 'proofValue'> = {
     type: 'DataIntegrityProof',
