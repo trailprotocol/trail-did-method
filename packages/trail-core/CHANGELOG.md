@@ -2,7 +2,7 @@
 
 All notable changes to `@trailprotocol/core` are documented in this file.
 
-## Unreleased
+## 0.4.0
 
 ### Fixed
 
