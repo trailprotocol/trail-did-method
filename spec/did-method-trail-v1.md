@@ -594,7 +594,7 @@ This addition is strictly additive: existing §5.4.2 declared-only bindings rema
 
 ##### 5.4.5.1 Credential Shape
 
-Both legs are stand-alone Verifiable Credentials. Each leg carries its own `eddsa-jcs-2023` Data Integrity proof (§8.2) and its own `StatusList2021Entry` (§8.7) for independent per-side revocation.
+Both legs are stand-alone Verifiable Credentials. Each leg carries its own `eddsa-jcs-2022` Data Integrity proof (§8.2) and its own `StatusList2021Entry` (§8.7) for independent per-side revocation.
 
 **Credential A — the `did:trail` leg** (issued and signed by the `did:trail` controller):
 
@@ -625,7 +625,7 @@ Both legs are stand-alone Verifiable Credentials. Each leg carries its own `edds
   },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "created": "2026-06-15T00:00:00Z",
     "verificationMethod": "did:trail:agent:acme-corp-eu-rfq-assistant-v1-d4e5f6a7b8c3d4e5#key-1",
     "proofPurpose": "assertionMethod",
@@ -663,7 +663,7 @@ Both legs are stand-alone Verifiable Credentials. Each leg carries its own `edds
   },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "created": "2026-06-15T00:00:00Z",
     "verificationMethod": "did:web:acme-corp.eu:agents:rfq-assistant#key-1",
     "proofPurpose": "assertionMethod",
@@ -688,7 +688,7 @@ Each credential is outbound from its own issuer's perspective (`from == issuer`,
 | `binding.to` | MUST | The counterpart DID. MUST equal `credentialSubject.id`. |
 | `binding.boundAt` | MUST | ISO 8601 timestamp at which the issuer attests the binding. Preserved in the credential as a hook for the deferred stricter key-lifecycle check (see §5.4.5.3 step 5 and §8.9). |
 | `credentialStatus` | MUST | `StatusList2021Entry` per §8.7, on the issuer's own status list. Enables independent per-side revocation. |
-| `proof` | MUST | `DataIntegrityProof` with cryptosuite `eddsa-jcs-2023` (§8.2), `proofPurpose: assertionMethod`, signed by an `assertionMethod` key of the issuer DID. |
+| `proof` | MUST | `DataIntegrityProof` with cryptosuite `eddsa-jcs-2022` (§8.2), `proofPurpose: assertionMethod`, signed by an `assertionMethod` key of the issuer DID. |
 
 *Reserved:* `binding.direction` is reserved for a possible future `"inbound"` attestation type and MUST NOT appear in `BindingProofCredential` instances issued under this version of the specification. For outbound credentials its value is fully determined by the `from == issuer` MUST constraint, so it carries no independent information.
 
@@ -785,7 +785,7 @@ Signature: sig1=:BASE64_ENCODED_SIGNATURE:
   "didDocument": { ... },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "created": "2026-03-01T00:00:00Z",
     "verificationMethod": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1",
     "proofPurpose": "assertionMethod",
@@ -924,7 +924,7 @@ Signature: sig1=:BASE64_ENCODED_SIGNATURE:
   "didDocument": { ...updated document... },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "created": "2026-04-01T00:00:00Z",
     "verificationMethod": "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1",
     "proofPurpose": "authentication",
@@ -1509,11 +1509,11 @@ The TRAIL Protocol is designed for cryptographic agility — the ability to migr
 
 #### 8.2.1 Supported Cryptosuites
 
-All TRAIL implementations MUST support at least the following cryptosuite:
+All TRAIL implementations MUST support at least the following cryptosuite, as defined in [DI-EDDSA] §3.3:
 
 | Cryptosuite ID | Algorithm | Canonicalization | Key Type | Status |
 |---|---|---|---|---|
-| `eddsa-jcs-2023` | Ed25519 | JCS (RFC 8785) | OKP (Ed25519) | **Active** |
+| `eddsa-jcs-2022` | Ed25519 | JCS (RFC 8785) | OKP (Ed25519) | **Active** |
 
 Additional cryptosuites MAY be added to the `SUPPORTED_CRYPTOSUITES` registry in future specification versions.
 
@@ -1523,7 +1523,7 @@ DID Documents MUST declare their supported cryptosuites using the `trail:support
 
 ```json
 {
-  "trail:supportedCryptosuites": ["eddsa-jcs-2023"]
+  "trail:supportedCryptosuites": ["eddsa-jcs-2022"]
 }
 ```
 
@@ -1546,11 +1546,11 @@ The `createProof()` function in `@trailprotocol/core` accepts an explicit `crypt
 ```typescript
 import { createProof, isSupportedCryptosuite } from '@trailprotocol/core';
 
-// Default (eddsa-jcs-2023)
+// Default (eddsa-jcs-2022)
 const proof = createProof(document, privateKey, verificationMethod);
 
 // Explicit cryptosuite selection
-const proof = createProof(document, privateKey, verificationMethod, 'assertionMethod', 'eddsa-jcs-2023');
+const proof = createProof(document, privateKey, verificationMethod, 'assertionMethod', 'eddsa-jcs-2022');
 
 // Runtime validation
 if (isSupportedCryptosuite(suiteName)) {
@@ -1859,7 +1859,7 @@ The `AgentDeclaration` pattern defined in this section extends the assertion cap
 
 ### 8.13.2 AgentDeclaration Content Signature Format
 
-An AgentDeclaration is a Data Integrity proof ([VC-DATA-INTEGRITY]) over a canonicalized content manifest. Implementations MUST use a cryptosuite declared in the signing DID Document's `trail:supportedCryptosuites` (§8.2). The default cryptosuite is `eddsa-jcs-2023`.
+An AgentDeclaration is a Data Integrity proof ([VC-DATA-INTEGRITY]) over a canonicalized content manifest. Implementations MUST use a cryptosuite declared in the signing DID Document's `trail:supportedCryptosuites` (§8.2). The default cryptosuite is `eddsa-jcs-2022`.
 
 The signed manifest is a JSON object with the following shape:
 
@@ -1881,7 +1881,7 @@ The signed manifest is a JSON object with the following shape:
   "purpose": "assertion",
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "created": "2026-04-21T10:30:00Z",
     "verificationMethod": "did:trail:agent:acme-sales-agent-v2-de-3f8c#key-1",
     "proofPurpose": "assertionMethod",
@@ -1904,7 +1904,7 @@ The signed manifest is a JSON object with the following shape:
 | `proof` | MUST | W3C Data Integrity proof ([VC-DATA-INTEGRITY]) |
 | `proof.verificationMethod` | MUST | Full DID URL of a verification method in the agent DID Document with `assertionMethod` relationship |
 
-The manifest is canonicalized using the JCS algorithm (RFC 8785) before signing, consistent with `eddsa-jcs-2023` (§8.2).
+The manifest is canonicalized using the JCS algorithm (RFC 8785) before signing, consistent with `eddsa-jcs-2022` (§8.2).
 
 Content MAY be transported alongside its AgentDeclaration as a detached envelope, or the declaration MAY be embedded (e.g., in HTTP headers, email headers per [RFC 5322], or file metadata). Embedding mechanisms are OUT OF SCOPE for this specification but implementations SHOULD prefer detached transport for format portability.
 
@@ -2032,7 +2032,7 @@ console.log(orgDid);   // "did:trail:org:acme-a7f3b2c1e9d04f5a"
 // DID Documents include specVersion and supportedCryptosuites
 const doc = createDidDocument(orgDid, keys, { mode: 'org' });
 console.log(doc['trail:specVersion']);           // "1.1.0"
-console.log(doc['trail:supportedCryptosuites']); // ["eddsa-jcs-2023"]
+console.log(doc['trail:supportedCryptosuites']); // ["eddsa-jcs-2022"]
 
 // Key rotation (org/agent only — self-mode derives DID from key)
 const newKeys = generateKeyPair();
@@ -2046,7 +2046,7 @@ const result = await resolver.resolve(selfDid);
 console.log(result.didDocument);
 
 // Crypto agility: validate cryptosuites at runtime
-console.log(isSupportedCryptosuite('eddsa-jcs-2023')); // true
+console.log(isSupportedCryptosuite('eddsa-jcs-2022')); // true
 console.log(isSupportedCryptosuite('unknown-suite'));   // false
 
 // Create and verify a Verifiable Credential
@@ -2369,7 +2369,7 @@ The `OutputAttestationVC` is a Verifiable Credential that binds a specific AI-ge
   },
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "verificationMethod": "did:trail:org:acme-corp-a1b2c3d4e5f67890#key-1",
     "created": "2026-04-13T14:30:00Z",
     "proofPurpose": "assertionMethod"
@@ -2416,14 +2416,15 @@ This release adds normative cryptographic mutual consent to §5.4 Cross-Method B
 
 | # | Change | Sections Affected |
 |---|--------|-------------------|
-| 1 | **Added `BindingProofCredential` (normative §5.4.5)** — Two reciprocal unidirectional Verifiable Credentials, one signed by each controller, upgrade the §5.4.2 declared-only bidirectionality check to cryptographically signed mutual consent. Uses W3C VC 2.0 context (`https://www.w3.org/ns/credentials/v2`) and the new TRAIL credentials context (`https://trailprotocol.org/ns/credentials/v2`) for the new terms. Signed under `eddsa-jcs-2023` (§8.2) with independent per-side `StatusList2021` revocation (§8.7). Strictly additive: existing §5.4.2 declared-only bindings remain valid; verifiers that ignore `BindingProofCredential` produce identical results to v1.2.x. | §5.4.5 (new) |
+| 1 | **Added `BindingProofCredential` (normative §5.4.5)** — Two reciprocal unidirectional Verifiable Credentials, one signed by each controller, upgrade the §5.4.2 declared-only bidirectionality check to cryptographically signed mutual consent. Uses W3C VC 2.0 context (`https://www.w3.org/ns/credentials/v2`) and the new TRAIL credentials context (`https://trailprotocol.org/ns/credentials/v2`) for the new terms. Signed under `eddsa-jcs-2022` (§8.2) with independent per-side `StatusList2021` revocation (§8.7). Strictly additive: existing §5.4.2 declared-only bindings remain valid; verifiers that ignore `BindingProofCredential` produce identical results to v1.2.x. | §5.4.5 (new) |
 | 2 | **Reconciled roadmap label `BindingProofVC` → `BindingProofCredential`** in the v1.3.0 (planned) entry of §8.12, for W3C-convention consistency with `TrailIdentityCredential`. No behavioural change. | §8.12 |
 | 3 | **Added §14.5 Numeric Canonicalization and Integer Constraint** — numeric JCS (RFC 8785) test vector with computed SHA-256, the `1.0`→`1` / `-0`→`0` serialization rules, a normative integer-only constraint for signed payloads (IEEE-754 safe integer range, absolute value ≤ 2^53 − 1), and a verifier parse/re-serialize roundtrip conformance requirement. Closes the missing numeric test vector in §14.4. | §14.5 (new) |
 | 4 | **Aligned §15 example cryptosuite** `eddsa-jcs-2022` → `eddsa-jcs-2023` to match §8.2, §14, and the implementation default. Example-only fix, no normative change. | §15 |
 | 5 | **Resolved the §14.5 "out of scope" ambiguity in favour of a prohibition** — fractional and exponential numbers MUST NOT appear in a payload canonicalized for signing. The previous wording read either as forbidding them or as merely not addressing them, which led to different implementations. Replaced the rationale, which incorrectly asserted that only small integers reach signed payloads, and stated explicitly that the constraint is stricter than RFC 8785 and governs values rather than the canonicalization routine. The trust score sections were found to violate the constraint and are corrected in row 6 of this release rather than deferred. | §14.5 |
 | 6 | **Moved the trust score to an integer representation — BREAKING** — every published trust score value (overall, per-dimension `score` and `weight`, probationary cap, maturity multiplier) is now an integer on 0–100 instead of a 0.0–1.0 fraction, bringing §7.3 into conformance with the §14.5 numeric constraint. Adds a normative rounding rule: dimensions are computed as exact ratios and rounded half-up before publication, **aggregation uses the published integer dimension scores**, and only the maturity/anomaly multiplication is carried at full precision and rounded once at the end — so a verifier recomputing from §7.3.3 metadata reproduces the published `overall` exactly, closing a gap that made the §7.3.4 dispute process ill-defined. Three arithmetic defects in the examples are fixed in the same pass: `overall: 0.87` was not reachable from the dimension scores displayed beside it (weighted sum `0.8565`); `identityVerification: 0.95` was not reachable from the D1 formula at all, whose binary components only admit multiples of 0.1; and the §7.2.5 probationary example showed `cap: 0.50` where its own formula yields `0.615` for 23 verified interactions. The §7.3.3, §6.2.1 and §7.1 examples are now one coherent DID, computed from the raw inputs in §7.3.4. | §7.3.2, §7.3.3, §7.3.8, §6.2.1, §7.1, §7.2.5, §7.3.4 |
+| 7 | **Corrected the cryptosuite identifier `eddsa-jcs-2023` → `eddsa-jcs-2022` — BREAKING** — [DI-EDDSA] defines exactly two identifiers, `eddsa-rdfc-2022` (§3.2) and `eddsa-jcs-2022` (§3.3), and requires the proof's `cryptosuite` to be one of them; `eddsa-jcs-2023` is not defined there or in any other W3C cryptosuite specification. The Ed25519 + JCS algorithm TRAIL specifies and implements is `eddsa-jcs-2022`, so conformant Data Integrity verifiers rejected TRAIL proofs as carrying an unknown suite. Row 4 aligned §15 in the wrong direction; this row reverts it and corrects §8.2 and every other occurrence. The algorithm is unchanged, but the identifier is part of the signed proof configuration, so proofs carrying the old identifier do not verify under the corrected one. | §5.4.5, §6.1.2, §6.3, §8.2, §8.13, §10.1, §15 |
 
-Authored by Amey Parle (§5.4.5 BindingProofCredential, rows 1–2). Editorial hardening rows 3–4 (§14.5 numeric vector, §15 alignment) by the maintainer. Row 5 resolves an ambiguity in row 3 that Amey Parle identified, along with its consequence for the trust score sections, in [Issue #25](https://github.com/trailprotocol/trail-did-method/issues/25). Row 6 follows from it; the example arithmetic defects it fixes were surfaced by the conformance harness once that harness was reconciled with §7.3 and put under CI. Design discussion: [Issue #21](https://github.com/trailprotocol/trail-did-method/issues/21).
+Authored by Amey Parle (§5.4.5 BindingProofCredential, rows 1–2). Editorial hardening rows 3–4 (§14.5 numeric vector, §15 alignment) by the maintainer. Row 5 resolves an ambiguity in row 3 that Amey Parle identified, along with its consequence for the trust score sections, in [Issue #25](https://github.com/trailprotocol/trail-did-method/issues/25). Row 6 follows from it; the example arithmetic defects it fixes were surfaced by the conformance harness once that harness was reconciled with §7.3 and put under CI. Row 7 by Amey Parle. Design discussion: [Issue #21](https://github.com/trailprotocol/trail-did-method/issues/21).
 
 ### v1.2.1 (2026-04-22)
 

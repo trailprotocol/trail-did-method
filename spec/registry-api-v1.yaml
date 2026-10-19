@@ -121,7 +121,7 @@ paths:
                       x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
               proof:
                 type: "DataIntegrityProof"
-                cryptosuite: "eddsa-jcs-2023"
+                cryptosuite: "eddsa-jcs-2022"
                 created: "2026-04-22T00:00:00Z"
                 verificationMethod: "did:trail:org:acme-corp-eu-a7f3b2c1e9d04f5a#key-1"
                 proofPurpose: "assertionMethod"
@@ -398,7 +398,7 @@ paths:
                   encodedList: "H4sIAAAAAAAAA-3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAeAMBAAAA..."
                 proof:
                   type: "DataIntegrityProof"
-                  cryptosuite: "eddsa-jcs-2023"
+                  cryptosuite: "eddsa-jcs-2022"
                   created: "2026-04-22T06:00:00Z"
                   verificationMethod: "did:trail:org:trail-registry-root-a1b2c3d4e5f6#key-1"
                   proofPurpose: "assertionMethod"
@@ -496,7 +496,7 @@ paths:
                 federationPartners:
                   - "did:trail:org:partner-registry-eu-b9c0d1e2"
                 supportedCryptosuites:
-                  - "eddsa-jcs-2023"
+                  - "eddsa-jcs-2022"
                 specVersion: "1.2.1"
                 operatorName: "Example Registry Operator"
                 operatorContact: "ops@registry.example.com"
@@ -944,7 +944,7 @@ components:
           type: array
           items:
             type: string
-          example: ["eddsa-jcs-2023"]
+          example: ["eddsa-jcs-2022"]
         specVersion:
           type: string
           description: TRAIL spec version this registry implements.
@@ -1011,7 +1011,7 @@ components:
           example: "DataIntegrityProof"
         cryptosuite:
           type: string
-          example: "eddsa-jcs-2023"
+          example: "eddsa-jcs-2022"
         created:
           type: string
           format: date-time

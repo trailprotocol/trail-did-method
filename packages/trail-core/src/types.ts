@@ -53,10 +53,10 @@ export interface DidResolutionResult {
 
 /**
  * Supported cryptosuites for DataIntegrityProof.
- * Currently only eddsa-jcs-2023 is implemented; this type enables crypto agility
+ * Currently only eddsa-jcs-2022 is implemented; this type enables crypto agility
  * by allowing future suites to be added without breaking changes.
  */
-export type SupportedCryptosuite = 'eddsa-jcs-2023';
+export type SupportedCryptosuite = 'eddsa-jcs-2022';
 
 export interface DataIntegrityProof {
   type: 'DataIntegrityProof';
@@ -69,7 +69,7 @@ export interface DataIntegrityProof {
 
 /**
  * Registry of supported cryptosuites and their metadata.
- * Used for crypto agility: implementations MUST support at least eddsa-jcs-2023,
+ * Used for crypto agility: implementations MUST support at least eddsa-jcs-2022,
  * and MAY support additional suites listed here.
  */
 export const SUPPORTED_CRYPTOSUITES: ReadonlyArray<{
@@ -80,7 +80,7 @@ export const SUPPORTED_CRYPTOSUITES: ReadonlyArray<{
   status: 'active' | 'deprecated';
 }> = [
   {
-    id: 'eddsa-jcs-2023',
+    id: 'eddsa-jcs-2022',
     algorithm: 'Ed25519',
     canonicalization: 'JCS (RFC 8785)',
     keyType: 'OKP',

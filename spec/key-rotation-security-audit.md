@@ -328,7 +328,7 @@ A rotation request should carry enough information for auditability and replay p
   "nonce": "z...",
   "proof": {
     "type": "DataIntegrityProof",
-    "cryptosuite": "eddsa-jcs-2023",
+    "cryptosuite": "eddsa-jcs-2022",
     "verificationMethod": "did:trail:org:example-a7f3b2c1e9d04f5a#key-1",
     "proofPurpose": "authentication",
     "proofValue": "z..."
