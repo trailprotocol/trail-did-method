@@ -1,0 +1,43 @@
+# .github/workflows/release.yml
+# Publishes @trailprotocol/core to npm from a reviewed merge only.
+# Trigger: a tag "core-vX.Y.Z" pushed to main. Uses npm Trusted Publishing
+# (OIDC), so no npm token is stored in the repository. Provenance is attached,
+# which lets anyone verify the package was built from this repository by CI.
+name: Release trail-core
+
+on:
+  push:
+    tags:
+      - "core-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse tags that are not on main
+        run: |
+          git fetch origin main --depth=200
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "tag is not on main"; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        working-directory: packages/trail-core
+        run: npm ci
+      - name: Test
+        working-directory: packages/trail-core
+        run: npm test
+      - name: Check tag matches package.json version
+        working-directory: packages/trail-core
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "core-v$v" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} != core-v$v"; exit 1; }
+      - name: Publish with provenance
+        working-directory: packages/trail-core
+        run: npm publish --provenance --access public
