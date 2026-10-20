@@ -8,7 +8,7 @@ import { SUPPORTED_CRYPTOSUITES } from './types';
 /**
  * Default cryptosuite used when none is specified.
  */
-export const DEFAULT_CRYPTOSUITE: SupportedCryptosuite = 'eddsa-jcs-2023';
+export const DEFAULT_CRYPTOSUITE: SupportedCryptosuite = 'eddsa-jcs-2022';
 
 /**
  * Check whether a cryptosuite identifier is supported by this implementation.
@@ -23,10 +23,10 @@ function sha256(data: Buffer): Buffer {
 
 /**
  * Compute the "hash data" that gets signed (createProof) / re-derived
- * (verifyProof) for the eddsa-jcs-2023 cryptosuite.
+ * (verifyProof) for the eddsa-jcs-2022 cryptosuite.
  *
  * Conformance fix: per the W3C Data Integrity EdDSA cryptosuite
- * algorithm (VC-DI-EDDSA §3.3 "eddsa-jcs-2023" — Transformation §3.3.3,
+ * algorithm (VC-DI-EDDSA §3.3 "eddsa-jcs-2022" — Transformation §3.3.3,
  * Proof Configuration §3.3.5, Hashing §3.3.4), the bytes that get signed are
  * NOT simply the canonicalized document. They are:
  *
@@ -71,7 +71,7 @@ function computeHashData(
  * @param privateKeyBytes - Ed25519 private key (32 bytes)
  * @param verificationMethod - DID URL of the verification method (e.g. did:trail:self:z6Mk...#key-1)
  * @param proofPurpose - Proof purpose (default: assertionMethod)
- * @param cryptosuite - Cryptosuite to use (default: eddsa-jcs-2023). Enables crypto agility.
+ * @param cryptosuite - Cryptosuite to use (default: eddsa-jcs-2022). Enables crypto agility.
  */
 export function createProof(
   document: object,

@@ -2,9 +2,27 @@
 
 All notable changes to `@trailprotocol/core` are documented in this file.
 
-## Unreleased
+## 0.4.0
 
 ### Fixed
+
+- **Cryptosuite identifier corrected `eddsa-jcs-2023` → `eddsa-jcs-2022`
+  (breaking).** The W3C Data Integrity EdDSA Cryptosuites specification
+  defines only `eddsa-rdfc-2022` and `eddsa-jcs-2022`, and requires a proof's
+  `cryptosuite` to be one of them. `eddsa-jcs-2023` does not exist, so
+  conformant verifiers rejected every proof this package produced as an
+  unknown suite. The hashing and signing algorithm already matched
+  `eddsa-jcs-2022` and is unchanged. Only the identifier changes:
+  `SupportedCryptosuite`, `SUPPORTED_CRYPTOSUITES`, `DEFAULT_CRYPTOSUITE`,
+  and the `trail:supportedCryptosuites` value on generated and resolved DID
+  Documents. Because `cryptosuite` is part of the signed proof
+  configuration, proofs created by 0.3.0 and earlier do not verify under this
+  version, and proofs created by this version do not verify under 0.3.0.
+  The six `BindingProof` vectors in `validation/fixtures/` were re-signed
+  under the corrected identifier. The original signing keys were not in the
+  repository, so the vectors use new deterministic keys, and the DIDs derived
+  from those keys change too. Spec: `did-method-trail-v1.md` §16 v1.3.0-draft
+  row 7.
 
 - Regenerated the six `BindingProof` test vectors in `validation/fixtures/`
   against the 0.3.0 hashing path. The 0.3.0 proof-config binding invalidated
@@ -19,8 +37,8 @@ All notable changes to `@trailprotocol/core` are documented in this file.
   asserting `verified === false` would have passed on the stale vectors.
   Suite goes 67 → 73 tests.
 
-Fixtures and tests only; nothing shipped in `dist/` changed. Contributed by
-Amey Parle in [#26](https://github.com/trailprotocol/trail-did-method/pull/26).
+The two vector entries above are fixtures and tests only; nothing shipped in
+`dist/` changed. Contributed by Amey Parle in [#26](https://github.com/trailprotocol/trail-did-method/pull/26).
 
 ## 0.3.0
 

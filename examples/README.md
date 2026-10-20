@@ -28,7 +28,7 @@ The [`@trailprotocol/core`](https://www.npmjs.com/package/@trailprotocol/core) n
 
 - DID generation and resolution
 - JSON Canonicalization (JCS, RFC 8785)
-- DataIntegrityProof (`eddsa-jcs-2023`)
+- DataIntegrityProof (`eddsa-jcs-2022`)
 - Verifiable Credential issuance and verification
 
 ## Contributing

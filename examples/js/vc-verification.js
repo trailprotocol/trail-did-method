@@ -5,7 +5,7 @@
  *
  * Demonstrates how to:
  * 1. Create a self-signed Verifiable Credential (VC 2.0)
- * 2. Inspect the DataIntegrityProof (eddsa-jcs-2023)
+ * 2. Inspect the DataIntegrityProof (eddsa-jcs-2022)
  * 3. Verify the credential cryptographically
  * 4. Detect tampering with a negative test
  *
@@ -40,7 +40,7 @@ async function main() {
   // createSelfSignedCredential(issuerDid, subjectDid, claims, privateKeyBytes)
   //
   // This creates a VC with a DataIntegrityProof using the
-  // eddsa-jcs-2023 cryptosuite (Ed25519 + JCS canonicalization).
+  // eddsa-jcs-2022 cryptosuite (Ed25519 + JCS canonicalization).
   // In this example, issuer and subject are the same DID.
   const credential = createSelfSignedCredential(
     issuerDid,

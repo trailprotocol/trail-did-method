@@ -291,7 +291,7 @@ describe('DataIntegrityProof', () => {
     );
 
     assert.strictEqual(proof.type, 'DataIntegrityProof');
-    assert.strictEqual(proof.cryptosuite, 'eddsa-jcs-2023');
+    assert.strictEqual(proof.cryptosuite, 'eddsa-jcs-2022');
     assert.strictEqual(proof.verificationMethod, `${did}#key-0`);
     assert.ok(proof.proofValue.startsWith('z'));
 
@@ -333,7 +333,7 @@ describe('DataIntegrityProof', () => {
     assert.ok(!valid);
   });
 
-  // eddsa-jcs-2023 W3C conformance fix. Per VC-DI-EDDSA §3.3
+  // eddsa-jcs-2022 W3C conformance fix. Per VC-DI-EDDSA §3.3
   // (Hashing §3.3.4 / Proof Configuration §3.3.5), the signature MUST bind
   // the proof's own metadata (verificationMethod, created, proofPurpose,
   // cryptosuite), not just the document. These tests pin that behavior down:
@@ -512,12 +512,14 @@ describe('End-to-End Roundtrip', () => {
 });
 
 describe('Crypto Agility', () => {
-  it('DEFAULT_CRYPTOSUITE is eddsa-jcs-2023', () => {
-    assert.strictEqual(DEFAULT_CRYPTOSUITE, 'eddsa-jcs-2023');
+  it('DEFAULT_CRYPTOSUITE is eddsa-jcs-2022', () => {
+    assert.strictEqual(DEFAULT_CRYPTOSUITE, 'eddsa-jcs-2022');
   });
 
   it('isSupportedCryptosuite validates known suites', () => {
-    assert.ok(isSupportedCryptosuite('eddsa-jcs-2023'));
+    assert.ok(isSupportedCryptosuite('eddsa-jcs-2022'));
+    // Not a W3C identifier (DI-EDDSA defines eddsa-rdfc-2022 / eddsa-jcs-2022 only).
+    assert.ok(!isSupportedCryptosuite('eddsa-jcs-2023'));
     assert.ok(!isSupportedCryptosuite('ecdsa-rdfc-2019'));
     assert.ok(!isSupportedCryptosuite('unknown-suite'));
     assert.ok(!isSupportedCryptosuite(''));
@@ -544,10 +546,10 @@ describe('Crypto Agility', () => {
       keys.privateKeyBytes,
       `${did}#key-1`,
       'assertionMethod',
-      'eddsa-jcs-2023'
+      'eddsa-jcs-2022'
     );
 
-    assert.strictEqual(proof.cryptosuite, 'eddsa-jcs-2023');
+    assert.strictEqual(proof.cryptosuite, 'eddsa-jcs-2022');
     const valid = verifyProof(doc, proof, keys.publicKeyBytes);
     assert.ok(valid);
   });
@@ -569,7 +571,7 @@ describe('Crypto Agility', () => {
 
     assert.ok(doc['trail:supportedCryptosuites']);
     assert.ok(Array.isArray(doc['trail:supportedCryptosuites']));
-    assert.ok(doc['trail:supportedCryptosuites']!.includes('eddsa-jcs-2023'));
+    assert.ok(doc['trail:supportedCryptosuites']!.includes('eddsa-jcs-2022'));
   });
 });
 
@@ -602,7 +604,7 @@ describe('Spec Version', () => {
     const result = await resolver.resolve(did);
 
     assert.ok(result.didDocument['trail:supportedCryptosuites']);
-    assert.ok(result.didDocument['trail:supportedCryptosuites']!.includes('eddsa-jcs-2023'));
+    assert.ok(result.didDocument['trail:supportedCryptosuites']!.includes('eddsa-jcs-2022'));
   });
 });
 

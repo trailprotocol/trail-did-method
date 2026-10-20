@@ -1,6 +1,6 @@
 {
   "name": "@trailprotocol/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TRAIL Protocol - Trust Registry for AI Identity Layer - Core SDK",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
