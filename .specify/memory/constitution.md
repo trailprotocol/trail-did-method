@@ -23,7 +23,7 @@ TRAIL DIDs MUST be W3C DID Core 1.0 compliant at all times.
 TRAIL DIDs MUST NOT expose internal vocabulary in public artifacts.
 
 - Commit messages, spec texts, Registry YAML, and npm-published packages MUST use W3C/DIF/public terminology only
-- Internal identifiers (Eisenhower-Task-IDs, private roadmap filenames, company-internal framing, private email addresses, local file paths) MUST NOT appear in any git-tracked file on a public remote
+- Internal identifiers (internal ticket IDs, private roadmap filenames, company-internal framing, private email addresses, local file paths) MUST NOT appear in any git-tracked file on a public remote
 - The `preflight-public-commit.sh` script enforces this at push time as Gate 1
 - Violations discovered post-publish require immediate revert + audit cascade
 

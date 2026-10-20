@@ -1,15 +1,27 @@
 # CODEOWNERS for trail-did-method
 # Chris retains final approval authority on spec and governance files.
+# Amey Parle co-owns the implementation paths; every change there needs
+# an approval from a code owner who is not the author.
 # See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
 
 # Default: Chris owns everything unless overridden below
 *                           @chrishooooo-netizen
 
-# Spec is Chris-lead — all changes require his review
-/spec/**                    @chrishooooo-netizen
+# Implementation: either code owner may approve, never the author
+/packages/**                @chrishooooo-netizen @AmeyParle
+/tests/**                   @chrishooooo-netizen @AmeyParle
+/validation/**              @chrishooooo-netizen @AmeyParle
+/examples/**                @chrishooooo-netizen @AmeyParle
+/scripts/**                 @chrishooooo-netizen @AmeyParle
+/methods/**                 @chrishooooo-netizen @AmeyParle
 
-# Governance & meta
+# Spec is Chris-lead: all changes require his review
+/spec/**                    @chrishooooo-netizen
+/specs/**                   @chrishooooo-netizen
+
+# Governance and meta
 /.github/**                 @chrishooooo-netizen
 /CODEOWNERS                 @chrishooooo-netizen
+/GOVERNANCE.md              @chrishooooo-netizen
 /LICENSE                    @chrishooooo-netizen
 /README.md                  @chrishooooo-netizen
